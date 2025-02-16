@@ -10,7 +10,7 @@ struct SplashView: View {
             Color.black.edgesIgnoringSafeArea(.all)
             
             VStack {
-                Image(systemName: "SignacerLogo") // Placeholder for logo
+                Image("SignacerLogo") // Placeholder for logo
                     .resizable()
                     .frame(width: 100, height: 100)
                     .foregroundColor(.neonGreen)
