@@ -7,6 +7,7 @@ struct LoginView: View {
     @State private var username = ""
     @State private var isRegistering = false
     @State private var showForgotPassword = false
+    @State private var navigateToWelcome = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -27,9 +28,13 @@ struct LoginView: View {
             
             Button(action: {
                 if isRegistering {
-                    // Add registration logic
+                    // Simulate registration by creating a dummy user
+                    let newUser = User(uid: UUID().uuidString, email: email, username: username, profilePicURL: "")
+                    authViewModel.user = newUser
+                    navigateToWelcome = true
                 } else {
                     authViewModel.signIn(email: email, password: password)
+                    navigateToWelcome = true
                 }
             }) {
                 Text(isRegistering ? "Create Account" : "Sign In")
@@ -62,8 +67,10 @@ struct CustomTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .padding()
-            .background(Color.white)
+            .background(Color(white: 0.2))
+            .foregroundColor(.white)
             .cornerRadius(8)
+            .autocapitalization(.none)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.neonGreen, lineWidth: 1)

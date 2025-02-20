@@ -12,7 +12,7 @@ struct SplashView: View {
             VStack {
                 Image("SignacerLogo") // Placeholder for logo
                     .resizable()
-                    .frame(width: 100, height: 100)
+                    .frame(width: 400, height: 400)
                     .foregroundColor(.neonGreen)
                     .scaleEffect(isFinished ? 1.2 : 1.0)
             }
@@ -22,7 +22,7 @@ struct SplashView: View {
                 isFinished = true
             }
             // Delay to show animation before transitioning
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 isFinished = true
             }
         }

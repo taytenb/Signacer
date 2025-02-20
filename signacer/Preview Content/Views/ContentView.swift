@@ -11,16 +11,13 @@ struct ContentView: View {
             if showingSplash {
                 SplashView()
             } else if authViewModel.user == nil {
-                // No Firebase user: show login options.
+                // New user flow
                 NavigationView {
-                    LoginOptionsView()
+                    SignInView()
                 }
-            } else if !hasCompletedOnboarding {
-                // User is signed in but hasn't completed initial onboarding.
-                OnboardingFlowView()
             } else {
-                // Returning user flow—show "login with QR code" first.
-                SecondaryLoginFlowView()
+                // Returning user flow
+                WelcomeView()
             }
         }
         .onAppear {

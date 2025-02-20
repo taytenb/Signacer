@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct LoginOptionsView: View {
+struct SignInView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
@@ -10,9 +10,10 @@ struct LoginOptionsView: View {
                 .foregroundColor(.white)
             
             Button(action: {
+                // Simulated signup with Apple
                 authViewModel.signInWithApple()
             }) {
-                Text("Sign In with Apple")
+                Text("Sign Up with Apple")
                     .padding()
                     .background(Color.neonGreen)
                     .foregroundColor(.black)
@@ -20,9 +21,10 @@ struct LoginOptionsView: View {
             }
             
             Button(action: {
+                // Simulated signup with Google
                 authViewModel.signInWithGoogle()
             }) {
-                Text("Sign In with Google")
+                Text("Sign Up with Google")
                     .padding()
                     .background(Color.neonGreen)
                     .foregroundColor(.black)
@@ -30,7 +32,7 @@ struct LoginOptionsView: View {
             }
             
             NavigationLink(destination: LoginView()) {
-                Text("Sign In Manually")
+                Text("Sign Up Manually")
                     .foregroundColor(.neonGreen)
             }
         }

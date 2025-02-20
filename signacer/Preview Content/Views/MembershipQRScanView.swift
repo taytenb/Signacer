@@ -1,29 +1,28 @@
 import SwiftUI
 
 struct MembershipQRScanView: View {
-    @State private var isShowingScanner = false
     var onScanCompletion: (String) -> Void
+    @State private var showScanner = true
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Scan Your Membership Card")
-                .font(.title)
-                .foregroundColor(.white)
+        ZStack {
+            if showScanner {
+                QRScannerView { scannedCode in
+                    print("QR Code scanned: \(scannedCode)")
+                    onScanCompletion(scannedCode)
+                }
+            }
             
-            Button(action: {
-                isShowingScanner = true
-            }) {
-                Text("Scan QR Code")
-                    .padding()
-                    .background(Color.neonGreen)
-                    .foregroundColor(.black)
-                    .cornerRadius(8)
+            VStack(spacing: 20) {
+                Text("Scanning Membership Card...")
+                    .font(.title)
+                    .foregroundColor(.white)
             }
         }
-        .sheet(isPresented: $isShowingScanner) {
-            QRScannerView { scannedCode in
-                onScanCompletion(scannedCode)
-                isShowingScanner = false
+        .onAppear {
+            // Simulate a successful QR scan after a 2-second delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                onScanCompletion("dummyQR")
             }
         }
         .background(Color.black)

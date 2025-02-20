@@ -17,13 +17,12 @@ struct OnboardingView: View {
                 .accentColor(.neonGreen)
             
             TextField("Phone Number", text: $phoneNumber)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(CustomTextFieldStyle())
             
             TextField("Username", text: $username)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(CustomTextFieldStyle())
             
             Button(action: {
-                // Save the extra user info as needed. Here we simply mark onboarding completed.
                 UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                 isOnboardingComplete = true
             }) {
