@@ -15,10 +15,6 @@ struct LoginView: View {
                 .font(.largeTitle)
                 .foregroundColor(.white)
             
-            if isRegistering {
-                TextField("Username", text: $username)
-                    .textFieldStyle(CustomTextFieldStyle())
-            }
             
             TextField("Email", text: $email)
                 .textFieldStyle(CustomTextFieldStyle())
@@ -29,7 +25,7 @@ struct LoginView: View {
             Button(action: {
                 if isRegistering {
                     // Simulate registration by creating a dummy user
-                    let newUser = User(uid: UUID().uuidString, email: email, username: username, profilePicURL: "")
+                    let newUser = User(uid: UUID().uuidString, email: email, username: "", profilePicURL: "", age: 0, phoneNumber: "")
                     authViewModel.user = newUser
                     navigateToWelcome = true
                 } else {

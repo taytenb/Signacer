@@ -37,7 +37,9 @@ class AuthViewModel: ObservableObject {
                     uid: userId,
                     email: data["email"] as? String ?? "",
                     username: data["username"] as? String ?? "User",
-                    profilePicURL: data["profilePicURL"] as? String ?? ""
+                    profilePicURL: data["profilePicURL"] as? String ?? "",
+                    age: data["age"] as? Int ?? 0,
+                    phoneNumber: data["phoneNumber"] as? String ?? ""
                 )
                 DispatchQueue.main.async {
                     self?.user = user
@@ -57,17 +59,31 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // Stub for Apple Sign In (you would use AuthenticationServices)
+    // Stub for Apple Sign In
     func signInWithApple() {
         // TODO: Implement real Apple login.
-        let dummyUser = User(uid: "appleUser", email: "apple@example.com", username: "AppleUser", profilePicURL: "")
+        let dummyUser = User(
+            uid: "appleUser", 
+            email: "apple@example.com", 
+            username: "AppleUser", 
+            profilePicURL: "",
+            age: 0,
+            phoneNumber: ""
+        )
         self.user = dummyUser
     }
     
-    // Stub for Google Sign In (requires importing GoogleSignIn SDK)
+    // Stub for Google Sign In
     func signInWithGoogle() {
         // TODO: Implement real Google login.
-        let dummyUser = User(uid: "googleUser", email: "google@example.com", username: "GoogleUser", profilePicURL: "")
+        let dummyUser = User(
+            uid: "googleUser", 
+            email: "google@example.com", 
+            username: "GoogleUser", 
+            profilePicURL: "",
+            age: 0,
+            phoneNumber: ""
+        )
         self.user = dummyUser
     }
     

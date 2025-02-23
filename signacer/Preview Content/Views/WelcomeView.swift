@@ -23,11 +23,11 @@ struct WelcomeView: View {
             }
         }
         .sheet(isPresented: $isShowingQRScanner) {
-            QRScannerView { scannedCode in
+            MembershipQRScanView { scannedCode in
                 print("Scanned QR Code: \(scannedCode)")
                 isShowingQRScanner = false
                 
-                // Check if user needs onboarding
+                // Remove the delay and check onboarding status immediately
                 if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
                     navigateToOnboarding = true
                 } else {
