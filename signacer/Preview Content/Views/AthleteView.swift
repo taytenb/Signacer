@@ -36,11 +36,9 @@ struct AthleteView: View {
                 if athlete.highlightVideoURL == "JJGIF.gif" {
                     GIFPlayer(name: "JJGIF")
                         .frame(height: 200)
-                        .cornerRadius(10)
                 } else if let url = URL(string: athlete.highlightVideoURL) {
                     VideoPlayer(player: AVPlayer(url: url))
                         .frame(height: 200)
-                        .cornerRadius(10)
                 }
                 
                 VStack {
@@ -134,22 +132,33 @@ struct ExpandableSectionView<Content: View>: View {
     let content: () -> Content
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Button(action: onTap) {
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    onTap()
+                }
+            }) {
                 HStack {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.white)
                     Spacer()
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: "chevron.down")
                         .foregroundColor(.neonGreen)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
                 }
             }
             .padding(.horizontal)
             
             if isExpanded {
                 content()
-                    .transition(.opacity.combined(with: .slide))
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity.combined(with: .move(edge: .top))
+                        )
+                    )
             }
         }
     }
