@@ -76,7 +76,8 @@ struct AthleteView: View {
                     ) {
                         SectionView(title: "",
                                   items: athlete.perks.map { $0.title },
-                                  links: athlete.perks.map { $0.link })
+                                  links: athlete.perks.map { $0.link },
+                                  images: athlete.perks.map { $0.imageURL })
                     }
                 }
                 
@@ -98,7 +99,8 @@ struct AthleteView: View {
                     ) {
                         SectionView(title: "",
                                   items: athlete.communities.map { $0.title },
-                                  links: athlete.communities.map { $0.link })
+                                  links: athlete.communities.map { $0.link },
+                                  images: athlete.communities.map { $0.imageURL })
                     }
                 }
                 
@@ -112,12 +114,6 @@ struct AthleteView: View {
                     }
                 }
                 
-                // Only show products section if there are products
-                if !athlete.products.isEmpty {
-                    SectionView(title: "Products",
-                              items: athlete.products.map { $0.title },
-                              links: athlete.products.map { $0.link })
-                }
             }
         }
         .background(Color.black)
@@ -134,7 +130,7 @@ struct ExpandableSectionView<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0.3)) {
                     onTap()
                 }
             }) {
@@ -146,21 +142,30 @@ struct ExpandableSectionView<Content: View>: View {
                     Image(systemName: "chevron.down")
                         .foregroundColor(.neonGreen)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isExpanded)
                 }
+                .padding(.vertical, 12)
+                .padding(.horizontal)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(8)
             }
             .padding(.horizontal)
             
             if isExpanded {
-                content()
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .top)),
-                            removal: .opacity.combined(with: .move(edge: .top))
-                        )
-                    )
+                VStack {
+                    content()
+                        .padding(.top, 8)
+                }
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: isExpanded ? .none : 0)
+                .clipped()
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isExpanded)
             }
         }
+        .padding(.vertical, 4)
+        .background(Color.black.opacity(0.2))
+        .cornerRadius(10)
+        .padding(.horizontal, 4)
     }
 }
 
@@ -282,27 +287,69 @@ struct SectionView: View {
     let title: String
     let items: [String]
     let links: [String]
+    let images: [String]
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            if !title.isEmpty {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.bottom, 4)
+            }
+            
             ForEach(0..<items.count, id: \.self) { index in
                 if let url = URL(string: links[index]) {
                     Link(destination: url) {
-                        Text(items[index])
-                            .padding(8)
-                            .background(Color.neonGreen)
-                            .foregroundColor(.black)
-                            .cornerRadius(8)
+                        HStack {
+                            // Logo with background
+                            Image(images[index])
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 30, height: 30)
+                                .padding(6)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                            
+                            Text(items[index])
+                                .foregroundColor(.white)
+                                .padding(.leading, 8)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right")
+                                .foregroundColor(.neonGreen)
+                        }
+                        .padding(12)
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
                     }
                 } else {
-                    Text(items[index])
-                        .padding(8)
-                        .background(Color.neonGreen)
-                        .foregroundColor(.black)
-                        .cornerRadius(8)
+                    HStack {
+                        // Logo with background
+                        Image(images[index])
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 30, height: 30)
+                            .padding(6)
+                            .background(Color.white)
+                            .cornerRadius(8)
+                        
+                        Text(items[index])
+                            .foregroundColor(.white)
+                            .padding(.leading, 8)
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.5))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
                 }
             }
         }

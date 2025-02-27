@@ -36,9 +36,22 @@
 		E07FE81D2D4F364B00F8846F /* signacerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = signacerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E0963F0C2D6FFCFB00BB58F4 /* Exceptions for "signacer" folder in "signacer" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E07FE8012D4F364A00F8846F /* signacer */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E07FE8042D4F364A00F8846F /* signacer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E0963F0C2D6FFCFB00BB58F4 /* Exceptions for "signacer" folder in "signacer" target */,
+			);
 			path = signacer;
 			sourceTree = "<group>";
 		};
@@ -412,8 +425,10 @@
 				DEVELOPMENT_TEAM = 3H47KU57AS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = signacer/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Signacer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan QR codes for membership cards.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -429,6 +444,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.signacer.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -453,8 +469,10 @@
 				DEVELOPMENT_TEAM = 3H47KU57AS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = signacer/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Signacer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan QR codes for membership cards.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -470,6 +488,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.signacer.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

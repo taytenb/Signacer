@@ -108,8 +108,7 @@ class AuthViewModel: ObservableObject {
                             events: [],
                             communities: [],
                             giveaways: [],
-                            contentURL: athleteData["contentURL"] as? String ?? "",
-                            products: []
+                            contentURL: athleteData["contentURL"] as? String ?? ""
                         )
                         
                         // Update UI with athlete data

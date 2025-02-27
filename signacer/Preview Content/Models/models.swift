@@ -19,13 +19,13 @@ struct Athlete: Identifiable {
     let communities: [Community]
     let giveaways: [Giveaway]
     let contentURL: String
-    let products: [Product]
 }
 
 struct Perk: Identifiable {
     let id: String
     let title: String
     let link: String
+    let imageURL: String
 }
 
 struct Event: Identifiable {
@@ -43,6 +43,7 @@ struct Community: Identifiable {
     let id: String
     let title: String
     let link: String
+    let imageURL: String
 }
 
 struct Giveaway: Identifiable {
@@ -52,11 +53,4 @@ struct Giveaway: Identifiable {
     let imageURL: String
     let endDate: Date
     var isEntered: Bool
-}
-
-struct Product: Identifiable {
-    let id: String
-    let title: String
-    let description: String
-    let link: String
 }

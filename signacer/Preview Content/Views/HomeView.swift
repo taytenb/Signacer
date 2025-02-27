@@ -12,7 +12,11 @@ struct HomeView: View {
         name: "Justin Jefferson",
         profilePicURL: "AthleteJJ",
         highlightVideoURL: "JJGIF.gif",
-        perks: [Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com"), Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com"), Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com")],
+        perks: [
+            Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com", imageURL: "Amazon"),
+            Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com", imageURL: "Gatorade"),
+            Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com", imageURL: "Underarmour")
+        ],
         events: [
             Event(
                 id: "event1",
@@ -35,7 +39,7 @@ struct HomeView: View {
                 imageURL: "auto"
             )
         ],
-        communities: [Community(id: "comm1", title: "Discord Community", link: "https://discord.com")],
+        communities: [Community(id: "comm1", title: "Discord Community", link: "https://discord.com", imageURL: "Discord")],
         giveaways: [
             Giveaway(
                 id: "give1",
@@ -54,8 +58,7 @@ struct HomeView: View {
                 isEntered: false
             )
         ],
-        contentURL: "https://youtube.com",
-        products: [Product(id: "prod1", title: "Justin Jefferson Jersey", description: "High-quality jersey", link: "https://justinjefferson.com")]
+        contentURL: "https://youtube.com"
     )
     // Mock data for athlete cards - replace with your actual data model
     private let athleteCards: [AthleteCard] = [
@@ -65,7 +68,11 @@ struct HomeView: View {
                 name: "Justin Jefferson",
                 profilePicURL: "AthleteJJ",
                 highlightVideoURL: "JJGIF.gif",
-                perks: [Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com"), Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com"), Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com")],
+                perks: [
+                    Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com", imageURL: "Amazon"),
+                    Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com", imageURL: "Gatorade"),
+                    Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com", imageURL: "Underarmour")
+                ],
                 events: [
                     Event(
                         id: "event1",
@@ -88,7 +95,7 @@ struct HomeView: View {
                         imageURL: "auto"
                     )
                 ],
-                communities: [Community(id: "comm1", title: "Discord Community", link: "https://discord.com")],
+                communities: [Community(id: "comm1", title: "Discord Community", link: "https://discord.com", imageURL: "Discord")],
                 giveaways: [
                     Giveaway(
                         id: "give1",
@@ -107,8 +114,7 @@ struct HomeView: View {
                         isEntered: false
                     )
                 ],
-                contentURL: "https://youtube.com",
-                products: [Product(id: "prod1", title: "Justin Jefferson Jersey", description: "High-quality jersey", link: "https://justinjefferson.com")]
+                contentURL: "https://youtube.com"
             ),
             backgroundImage: "JustinJefferson",
             rarity: "1/100"
@@ -139,21 +145,42 @@ struct HomeView: View {
                     }
                     .padding()
                     
-                    // Signacer Logo - Adjusted size
+                    // Signacer Logo
                     Image("SignacerLogo")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 400, height: 100)
                         .clipped()
                     
-                    // Welcome Message
-                    Text("Welcome back, Jaren")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                        .padding(.top)
-                        .padding(.bottom, 20)
+                    // Profile Section
+                    VStack(spacing: 8) {
+                        Image("Jaren")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 180, height: 180)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                        
+                        Text("Jaren Moreland")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("@itvsjmoney")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.vertical)
                     
-                    // Athlete Cards Grid - Updated width
+                    // My Cards Header
+                    Text("My Cards")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                    
+                    // Athlete Cards Grid
                     LazyVGrid(columns: [GridItem(.flexible())], spacing: 15) {
                         ForEach(athleteCards) { card in
                             NavigationLink(destination: AthleteView(athlete: card.athlete)) {
