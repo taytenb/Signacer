@@ -5,15 +5,22 @@ import FirebaseFirestore
 class AuthViewModel: ObservableObject {
     @Published var user: User? = nil
     private let db = Firestore.firestore()
+    private var listenerHandle: AuthStateDidChangeListenerHandle?
     
     init() {
-        // Listen to Firebase Auth changes.
-        Auth.auth().addStateDidChangeListener { [weak self] auth, firebaseUser in
+        // Store the listener handle
+        listenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, firebaseUser in
             if let firebaseUser = firebaseUser {
                 self?.fetchUserData(userId: firebaseUser.uid)
             } else {
                 self?.user = nil
             }
+        }
+    }
+    
+    deinit {
+        if let handle = listenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
         }
     }
     
@@ -62,29 +69,29 @@ class AuthViewModel: ObservableObject {
     // Stub for Apple Sign In
     func signInWithApple() {
         // TODO: Implement real Apple login.
-        let dummyUser = User(
-            uid: "appleUser", 
-            email: "apple@example.com", 
-            username: "AppleUser", 
-            profilePicURL: "",
-            age: 0,
-            phoneNumber: ""
+        let exampleUser = User(
+            uid: "jaren123", 
+            email: "jaren@example.com", 
+            username: "itvsjmoney", 
+            profilePicURL: "Jaren",
+            age: 25,
+            phoneNumber: "555-123-4567"
         )
-        self.user = dummyUser
+        self.user = exampleUser
     }
     
     // Stub for Google Sign In
     func signInWithGoogle() {
         // TODO: Implement real Google login.
-        let dummyUser = User(
-            uid: "googleUser", 
-            email: "google@example.com", 
-            username: "GoogleUser", 
-            profilePicURL: "",
-            age: 0,
-            phoneNumber: ""
+        let exampleUser = User(
+            uid: "jaren123", 
+            email: "jaren@example.com", 
+            username: "itvsjmoney", 
+            profilePicURL: "Jaren",
+            age: 25,
+            phoneNumber: "555-123-4567"
         )
-        self.user = dummyUser
+        self.user = exampleUser
     }
     
     func handleScannedCard(cardId: String) {
@@ -108,7 +115,8 @@ class AuthViewModel: ObservableObject {
                             events: [],
                             communities: [],
                             giveaways: [],
-                            contentURL: athleteData["contentURL"] as? String ?? ""
+                            contentURL: athleteData["contentURL"] as? String ?? "",
+                            polls: []   // Added missing polls parameter
                         )
                         
                         // Update UI with athlete data

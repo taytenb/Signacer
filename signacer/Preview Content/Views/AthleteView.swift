@@ -11,9 +11,12 @@ struct GIFPlayer: UIViewRepresentable {
         webView.isOpaque = false
         webView.scrollView.isScrollEnabled = false
         
-        if let gifPath = Bundle.main.path(forResource: "JJGIF", ofType: "gif") {
+        if let gifPath = Bundle.main.path(forResource: name, ofType: "gif") {
             let url = URL(fileURLWithPath: gifPath)
             webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        } else {
+            print("Could not find GIF: \(name).gif")
+            // Maybe load a placeholder image
         }
         
         return webView
@@ -28,96 +31,138 @@ struct AthleteView: View {
     let athlete: Athlete
     @State private var expandedSection: String?
     @State private var selectedPoll: String?
+    @State private var showChat = false
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Video Player at the top (plays the athlete's highlight video)
-                if athlete.highlightVideoURL == "JJGIF.gif" {
-                    GIFPlayer(name: "JJGIF")
-                        .frame(height: 200)
-                } else if let url = URL(string: athlete.highlightVideoURL) {
-                    VideoPlayer(player: AVPlayer(url: url))
-                        .frame(height: 200)
-                }
-                
-                VStack {
-                    // Updated Image handling with error state
-                    Image(athlete.profilePicURL)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 200, alignment: .top)
-                        .clipped()
-                        .foregroundColor(.neonGreen)
-                        .overlay(
-                            Group {
-                                if UIImage(named: athlete.profilePicURL) == nil {
-                                    Image(systemName: "person.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 60, height: 60)
-                                        .foregroundColor(.gray)
+        ZStack {
+            // Background
+            Color.black.edgesIgnoringSafeArea(.all)
+            
+            // Main content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    // Video Player at the top (plays the athlete's highlight video)
+                    if athlete.highlightVideoURL != "" {
+                        GIFPlayer(name: athlete.highlightVideoURL)
+                            .frame(height: 200)
+                    } else if let url = URL(string: athlete.highlightVideoURL) {
+                        VideoPlayer(player: AVPlayer(url: url))
+                            .frame(height: 200)
+                    }
+                    
+                    // Reduced padding here - from 60 to 20
+                    Spacer().frame(height: 20)
+                    
+                    VStack {
+                        // Updated Image handling with error state
+                        Image(athlete.profilePicURL)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 200, alignment: .top)
+                            .clipped()
+                            .foregroundColor(.neonGreen)
+                            .overlay(
+                                Group {
+                                    if UIImage(named: athlete.profilePicURL) == nil {
+                                        Image(systemName: "person.fill")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 60, height: 60)
+                                            .foregroundColor(.gray)
+                                    }
                                 }
-                            }
-                        )
-                    Text("@\(athlete.name)")
-                        .font(.title)
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal)
-                
-                // Only show sections that have content
-                if !athlete.perks.isEmpty {
-                    ExpandableSectionView(
-                        title: "Perks",
-                        isExpanded: expandedSection == "Perks",
-                        onTap: { expandedSection = expandedSection == "Perks" ? nil : "Perks" }
-                    ) {
-                        SectionView(title: "",
-                                  items: athlete.perks.map { $0.title },
-                                  links: athlete.perks.map { $0.link },
-                                  images: athlete.perks.map { $0.imageURL })
+                            )
+                        Text("@\(athlete.name)")
+                            .font(.title)
+                            .foregroundColor(.white)
                     }
-                }
-                
-                if !athlete.events.isEmpty {
-                    ExpandableSectionView(
-                        title: "Events",
-                        isExpanded: expandedSection == "Events",
-                        onTap: { expandedSection = expandedSection == "Events" ? nil : "Events" }
-                    ) {
-                        EventsView(events: athlete.events)
+                    .padding(.horizontal)
+                    
+                    // Only show sections that have content
+                    if !athlete.perks.isEmpty {
+                        ExpandableSectionView(
+                            title: "Perks",
+                            isExpanded: expandedSection == "Perks",
+                            onTap: { expandedSection = expandedSection == "Perks" ? nil : "Perks" }
+                        ) {
+                            SectionView(title: "",
+                                      items: athlete.perks.map { $0.title },
+                                      links: athlete.perks.map { $0.link },
+                                      images: athlete.perks.map { $0.imageURL })
+                        }
                     }
-                }
-                
-                if !athlete.communities.isEmpty {
-                    ExpandableSectionView(
-                        title: "Communities",
-                        isExpanded: expandedSection == "Communities",
-                        onTap: { expandedSection = expandedSection == "Communities" ? nil : "Communities" }
-                    ) {
-                        SectionView(title: "",
-                                  items: athlete.communities.map { $0.title },
-                                  links: athlete.communities.map { $0.link },
-                                  images: athlete.communities.map { $0.imageURL })
+                    
+                    if !athlete.events.isEmpty {
+                        ExpandableSectionView(
+                            title: "Events",
+                            isExpanded: expandedSection == "Events",
+                            onTap: { expandedSection = expandedSection == "Events" ? nil : "Events" }
+                        ) {
+                            EventsView(events: athlete.events)
+                        }
                     }
-                }
-                
-                if !athlete.giveaways.isEmpty {
-                    ExpandableSectionView(
-                        title: "Giveaways",
-                        isExpanded: expandedSection == "Giveaways",
-                        onTap: { expandedSection = expandedSection == "Giveaways" ? nil : "Giveaways" }
-                    ) {
-                        GiveawaysView(giveaways: athlete.giveaways)
+                    
+                    if !athlete.communities.isEmpty {
+                        ExpandableSectionView(
+                            title: "Communities",
+                            isExpanded: expandedSection == "Communities",
+                            onTap: { expandedSection = expandedSection == "Communities" ? nil : "Communities" }
+                        ) {
+                            SectionView(title: "",
+                                      items: athlete.communities.map { $0.title },
+                                      links: athlete.communities.map { $0.link },
+                                      images: athlete.communities.map { $0.imageURL })
+                        }
                     }
+                    
+                    if !athlete.giveaways.isEmpty {
+                        ExpandableSectionView(
+                            title: "Giveaways",
+                            isExpanded: expandedSection == "Giveaways",
+                            onTap: { expandedSection = expandedSection == "Giveaways" ? nil : "Giveaways" }
+                        ) {
+                            GiveawaysView(giveaways: athlete.giveaways)
+                        }
+                    }
+                    
+                    if !athlete.polls.isEmpty {
+                        ExpandableSectionView(
+                            title: "Polls",
+                            isExpanded: expandedSection == "Polls",
+                            onTap: { expandedSection = expandedSection == "Polls" ? nil : "Polls" }
+                        ) {
+                            PollsView(polls: athlete.polls)
+                        }
+                    }
+                    
+                }
+            }
+            
+            // Chat button as a separate overlay
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        showChat = true
+                    }) {
+                        Image(systemName: "message.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.neonGreen)
+                            .padding()
+                            .background(Circle().fill(Color.black.opacity(0.7)))
+                    }
+                    .padding(.top, 20)
+                    .padding(.trailing, 20)
                 }
                 
+                Spacer()
             }
         }
-        .background(Color.black)
-        .edgesIgnoringSafeArea(.all)
+        .sheet(isPresented: $showChat) {
+            ChatView(athleteName: athlete.name)
+        }
     }
 }
 
@@ -351,6 +396,50 @@ struct SectionView: View {
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
                 }
+            }
+        }
+        .padding(.horizontal)
+    }
+}
+
+struct PollsView: View {
+    let polls: [Poll]
+    @State private var selectedOptions: [String: String] = [:]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            ForEach(polls) { poll in
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(poll.question)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    ForEach(poll.options, id: \.self) { option in
+                        Button(action: { 
+                            selectedOptions[poll.id] = option
+                        }) {
+                            HStack {
+                                Text(option)
+                                    .foregroundColor(.black)
+                                Spacer()
+                                if selectedOptions[poll.id] == option {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.black)
+                                }
+                            }
+                            .padding()
+                            .background(selectedOptions[poll.id] == option ? Color.neonGreen : Color.white)
+                            .cornerRadius(8)
+                        }
+                    }
+                    
+                    Text("Poll ends \(poll.endDate, style: .date)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding()
+                .background(Color.black.opacity(0.5))
+                .cornerRadius(10)
             }
         }
         .padding(.horizontal)
