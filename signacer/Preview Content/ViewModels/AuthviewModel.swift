@@ -128,7 +128,7 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
         isLoading = true
         
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-        let config = GIDConfiguration(clientID: clientID)
+        _ = GIDConfiguration(clientID: clientID)
         
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = windowScene.windows.first?.rootViewController else {
@@ -249,7 +249,11 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
                 return
             }
             
-            let credential = OAuthProvider.credential(withProviderID: "apple.com", idToken: idTokenString, rawNonce: nonce)
+            let credential = OAuthProvider.credential(
+                providerID: AuthProviderID.apple, 
+                idToken: idTokenString, 
+                rawNonce: nonce
+            )
             authenticateWithFirebase(credential: credential)
         }
     }

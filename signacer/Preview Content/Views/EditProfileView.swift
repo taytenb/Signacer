@@ -170,7 +170,6 @@ struct EditProfileView: View {
         }
         .background(Color.black)
         .edgesIgnoringSafeArea(.all)
-        .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         .actionSheet(isPresented: $showingActionSheet) {
             ActionSheet(

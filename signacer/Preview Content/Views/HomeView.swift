@@ -43,12 +43,45 @@ struct HomeView: View {
                         ZStack(alignment: .bottomTrailing) {
                             // Profile image
                             if let user = authViewModel.user, !user.profilePicURL.isEmpty {
-                                Image(user.profilePicURL)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 180, height: 180)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                if user.profilePicURL.starts(with: "http") {
+                                    // Remote image
+                                    AsyncImage(url: URL(string: user.profilePicURL)) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 180, height: 180)
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 180, height: 180)
+                                                .clipShape(Circle())
+                                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                        case .failure:
+                                            Image(systemName: "person.circle.fill")
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 180, height: 180)
+                                                .foregroundColor(.neonGreen)
+                                                .background(Color.black)
+                                                .clipShape(Circle())
+                                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                        @unknown default:
+                                            Image(systemName: "person.circle.fill")
+                                                .resizable()
+                                                .frame(width: 180, height: 180)
+                                                .foregroundColor(.neonGreen)
+                                        }
+                                    }
+                                } else {
+                                    // Local image
+                                    Image(user.profilePicURL)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 180, height: 180)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                }
                             } else {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
@@ -179,22 +212,69 @@ class HomeViewModel: ObservableObject {
     @Published var error: String? = nil
     
     func fetchUserCards() {
-        guard let userId = Auth.auth().currentUser?.uid else {
-            // Fallback to using mock data for preview or if not logged in
-            athleteCards = mockAthleteCards()
-            return
-        }
-        
         isLoading = true
         error = nil
         
-        FirestoreManager.shared.fetchUserCards(userId: userId) { [weak self] cards in
-            self?.isLoading = false
-            self?.athleteCards = cards
+        // ONLY fetch all athletes from the athletes collection
+        let db = Firestore.firestore()
+        db.collection("athletes").getDocuments { [weak self] snapshot, error in
+            if let error = error {
+                self?.isLoading = false
+                self?.error = error.localizedDescription
+                print("Firestore error: \(error.localizedDescription)")
+                return
+            }
             
-            // If no cards found, use mock data for new users
-            if cards.isEmpty {
-                self?.athleteCards = self?.mockAthleteCards() ?? []
+            guard let documents = snapshot?.documents else {
+                self?.isLoading = false
+                print("No athletes found or snapshot is nil")
+                // If no athletes found, fall back to mock data
+                self?.athleteCards = self?.mockAthleteCards().sorted(by: { $0.athlete.name < $1.athlete.name }) ?? []
+                return
+            }
+            
+            print("Found \(documents.count) athlete documents")
+            var cards: [AthleteCard] = []
+            let group = DispatchGroup()
+            
+            for document in documents {
+                group.enter()
+                let athleteId = document.documentID
+                let data = document.data()
+                let name = data["name"] as? String ?? "Unknown Athlete"
+                let profilePicURL = data["profilePicURL"] as? String ?? ""
+                let highlightVideoURL = data["highlightVideoURL"] as? String ?? ""
+                let contentURL = data["contentURL"] as? String ?? ""
+                let backgroundImage = data["backgroundImage"] as? String ?? ""
+                
+                // Create a simple athlete directly from document data
+                FirestoreManager.shared.fetchAthlete(athleteId: athleteId) { athlete in
+                    if let athlete = athlete {
+                        let card = AthleteCard(
+                            athlete: athlete,
+                            backgroundImage: backgroundImage,
+                            rarity: "1/100"
+                        )
+                        cards.append(card)
+                        print("Added card for: \(athlete.name)")
+                    } else {
+                        print("Failed to fetch athlete data for ID: \(athleteId)")
+                    }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                self?.isLoading = false
+                // Sort cards alphabetically by athlete name
+                self?.athleteCards = cards.sorted(by: { $0.athlete.name < $1.athlete.name })
+                print("Loaded \(cards.count) athlete cards")
+                
+                // If no cards found, use mock data as fallback
+                if cards.isEmpty {
+                    print("No athletes found, using mock data")
+                    self?.athleteCards = self?.mockAthleteCards().sorted(by: { $0.athlete.name < $1.athlete.name }) ?? []
+                }
             }
         }
     }
@@ -404,13 +484,38 @@ struct AthleteCardView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Background Image
-            Image(card.backgroundImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
+            // Background Image - handle both local and remote URLs
+            if card.backgroundImage.starts(with: "http") {
+                // Remote image
+                AsyncImage(url: URL(string: card.backgroundImage)) { phase in
+                    switch phase {
+                    case .empty:
+                        Color.gray
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        Color.gray.overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(.white)
+                        )
+                    @unknown default:
+                        Color.gray
+                    }
+                }
                 .frame(maxWidth: .infinity)
                 .frame(height: 200, alignment: .top)
                 .cornerRadius(10)
+            } else {
+                // Local image
+                Image(card.backgroundImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 200, alignment: .top)
+                    .cornerRadius(10)
+            }
             
             // Overlay with name and rarity
             VStack(alignment: .leading) {

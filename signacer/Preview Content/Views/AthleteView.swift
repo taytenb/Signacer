@@ -42,11 +42,13 @@ struct AthleteView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     // Video Player at the top (plays the athlete's highlight video)
-                    if athlete.highlightVideoURL != "" {
+                    if athlete.highlightVideoURL.starts(with: "http") {
+                        if let url = URL(string: athlete.highlightVideoURL) {
+                            VideoPlayer(player: AVPlayer(url: url))
+                                .frame(height: 200)
+                        }
+                    } else if !athlete.highlightVideoURL.isEmpty {
                         GIFPlayer(name: athlete.highlightVideoURL)
-                            .frame(height: 200)
-                    } else if let url = URL(string: athlete.highlightVideoURL) {
-                        VideoPlayer(player: AVPlayer(url: url))
                             .frame(height: 200)
                     }
                     
@@ -54,25 +56,49 @@ struct AthleteView: View {
                     Spacer().frame(height: 20)
                     
                     VStack {
-                        // Updated Image handling with error state
-                        Image(athlete.profilePicURL)
-                            .resizable()
-                            .scaledToFill()
+                        // Fixed AsyncImage handling with remote/local support
+                        if athlete.profilePicURL.starts(with: "http") {
+                            // Remote image
+                            AsyncImage(url: URL(string: athlete.profilePicURL)) { phase in
+                                if phase.error != nil {
+                                    Image(systemName: "person.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 60, height: 60)
+                                        .foregroundColor(.gray)
+                                } else if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    ProgressView()
+                                }
+                            }
                             .frame(maxWidth: .infinity)
                             .frame(height: 200, alignment: .top)
                             .clipped()
                             .foregroundColor(.neonGreen)
-                            .overlay(
-                                Group {
-                                    if UIImage(named: athlete.profilePicURL) == nil {
-                                        Image(systemName: "person.fill")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 60, height: 60)
-                                            .foregroundColor(.gray)
+                        } else {
+                            // Local image
+                            Image(athlete.profilePicURL)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 200, alignment: .top)
+                                .clipped()
+                                .foregroundColor(.neonGreen)
+                                .overlay(
+                                    Group {
+                                        if UIImage(named: athlete.profilePicURL) == nil {
+                                            Image(systemName: "person.fill")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 60, height: 60)
+                                                .foregroundColor(.gray)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                        }
                         Text("@\(athlete.name)")
                             .font(.title)
                             .foregroundColor(.white)
@@ -233,24 +259,12 @@ struct EventCard: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            // Event Image
-            Image(event.imageURL)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(height: 150)
-                .clipped()
-                .cornerRadius(10, corners: [.topLeft, .topRight])
-                .overlay(
-                    Group {
-                        if UIImage(named: event.imageURL) == nil {
-                            Image(systemName: "calendar")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 40, height: 40)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                )
+            // Using the reusable image component
+            RemoteOrLocalImageView(
+                urlString: event.imageURL,
+                height: 150,
+                fallbackSystemName: "calendar"
+            )
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(event.title)
@@ -328,6 +342,61 @@ struct PollView: View {
     }
 }
 
+// Also let's create a simplified component for the small icon images in SectionView
+struct IconImageView: View {
+    let urlString: String
+    
+    var body: some View {
+        if urlString.starts(with: "http") {
+            AsyncImage(url: URL(string: urlString)) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(width: 30, height: 30)
+                        .padding(6)
+                        .background(Color.white)
+                        .cornerRadius(8)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 30, height: 30)
+                        .padding(6)
+                        .background(Color.white)
+                        .cornerRadius(8)
+                case .failure:
+                    fallbackIconView
+                @unknown default:
+                    fallbackIconView
+                }
+                
+            }
+        } else {
+            if let _ = UIImage(named: urlString) {
+                Image(urlString)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 30, height: 30)
+                    .padding(6)
+                    .background(Color.white)
+                    .cornerRadius(8)
+            } else {
+                fallbackIconView
+            }
+        }
+    }
+    
+    private var fallbackIconView: some View {
+        Image(systemName: "photo")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 30, height: 30)
+            .padding(6)
+            .background(Color.white)
+            .cornerRadius(8)
+    }
+}
+
 struct SectionView: View {
     let title: String
     let items: [String]
@@ -344,61 +413,50 @@ struct SectionView: View {
             }
             
             ForEach(0..<items.count, id: \.self) { index in
-                if let url = URL(string: links[index]) {
-                    Link(destination: url) {
-                        HStack {
-                            // Logo with background
-                            Image(images[index])
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 30, height: 30)
-                                .padding(6)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                            
-                            Text(items[index])
-                                .foregroundColor(.white)
-                                .padding(.leading, 8)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "arrow.right")
-                                .foregroundColor(.neonGreen)
-                        }
-                        .padding(12)
-                        .background(Color.black.opacity(0.5))
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                } else {
-                    HStack {
-                        // Logo with background
-                        Image(images[index])
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 30, height: 30)
-                            .padding(6)
-                            .background(Color.white)
-                            .cornerRadius(8)
-                        
-                        Text(items[index])
-                            .foregroundColor(.white)
-                            .padding(.leading, 8)
-                    }
-                    .padding(12)
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                }
+                sectionItemView(index: index)
             }
         }
         .padding(.horizontal)
+    }
+    
+    // Breaking down complex expressions into smaller, more manageable views
+    private func sectionItemView(index: Int) -> some View {
+        let hasValidURL = URL(string: links[index]) != nil
+        
+        return Group {
+            if hasValidURL {
+                Link(destination: URL(string: links[index])!) {
+                    itemContentView(index: index)
+                }
+            } else {
+                itemContentView(index: index)
+            }
+        }
+    }
+    
+    private func itemContentView(index: Int) -> some View {
+        HStack {
+            // Using simplified icon component
+            IconImageView(urlString: images[index])
+            
+            Text(items[index])
+                .foregroundColor(.white)
+                .padding(.leading, 8)
+            
+            Spacer()
+            
+            if URL(string: links[index]) != nil {
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.neonGreen)
+            }
+        }
+        .padding(12)
+        .background(Color.black.opacity(0.5))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
@@ -443,5 +501,146 @@ struct PollsView: View {
             }
         }
         .padding(.horizontal)
+    }
+}
+
+// Reusable image view component to standardize image handling
+struct RemoteOrLocalImageView: View {
+    let urlString: String
+    let height: CGFloat
+    let fallbackSystemName: String
+    
+    var body: some View {
+        if urlString.starts(with: "http") {
+            AsyncImage(url: URL(string: urlString)) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(height: height)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray)
+                        .cornerRadius(8)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: height)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
+                        .cornerRadius(8)
+                case .failure:
+                    fallbackView
+                @unknown default:
+                    fallbackView
+                }
+            }
+        } else {
+            if let _ = UIImage(named: urlString) {
+                Image(urlString)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: height)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    .cornerRadius(8)
+            } else {
+                fallbackView
+            }
+        }
+    }
+    
+    private var fallbackView: some View {
+        ZStack {
+            Color.gray
+                .frame(height: height)
+                .frame(maxWidth: .infinity)
+                .cornerRadius(8)
+            
+            Image(systemName: fallbackSystemName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: height * 0.3, height: height * 0.3)
+                .foregroundColor(.white)
+        }
+    }
+}
+
+struct GiveawaysView: View {
+    let giveaways: [Giveaway]
+    @State private var showingConfirmation = false
+    @State private var selectedGiveaway: Giveaway?
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            ForEach(giveaways) { giveaway in
+                GiveawayCard(giveaway: giveaway) {
+                    selectedGiveaway = giveaway
+                    showingConfirmation = true
+                }
+            }
+        }
+        .padding(.horizontal)
+        .alert("Enter Giveaway", isPresented: $showingConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Enter") {
+                enterGiveaway()
+            }
+        } message: {
+            if let giveaway = selectedGiveaway {
+                Text("Would you like to enter the giveaway for \(giveaway.title)?")
+            }
+        }
+    }
+    
+    private func enterGiveaway() {
+        // Here you would typically handle the giveaway entry in your backend
+    }
+}
+
+struct GiveawayCard: View {
+    let giveaway: Giveaway
+    let onEnterTap: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Using the reusable image component
+            RemoteOrLocalImageView(
+                urlString: giveaway.imageURL,
+                height: 150,
+                fallbackSystemName: "gift.fill"
+            )
+            
+            // Text content section
+            VStack(alignment: .leading, spacing: 4) {
+                Text(giveaway.title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Text(giveaway.description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                
+                HStack {
+                    Text("Ends \(giveaway.endDate, style: .date)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
+                    
+                    Button(action: onEnterTap) {
+                        Text(giveaway.isEntered ? "Entered" : "Enter Now")
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(giveaway.isEntered ? Color.gray : Color.neonGreen)
+                            .foregroundColor(giveaway.isEntered ? .white : .black)
+                            .cornerRadius(8)
+                    }
+                    .disabled(giveaway.isEntered)
+                }
+            }
+        }
+        .padding()
+        .background(Color.black.opacity(0.5))
+        .cornerRadius(12)
     }
 }

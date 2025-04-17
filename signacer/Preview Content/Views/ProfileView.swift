@@ -24,16 +24,46 @@ struct ProfileView: View {
                 // Profile Header
                 VStack(spacing: 16) {
                     // Profile Image (positioned to overlap the banner)
-                    if let user = authViewModel.user, user.profilePicURL != "default_profile" {
-                        Image(user.profilePicURL)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 180, height: 180)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
-                            .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
-                            .offset(y: -60)
-                            .padding(.bottom, -60)
+                    if let user = authViewModel.user, !user.profilePicURL.isEmpty {
+                        if user.profilePicURL.starts(with: "http") {
+                            // Remote image
+                            AsyncImage(url: URL(string: user.profilePicURL)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 180, height: 180)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 180, height: 180)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                case .failure:
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 180, height: 180)
+                                        .foregroundColor(.neonGreen)
+                                        .background(Color.black)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                @unknown default:
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .frame(width: 180, height: 180)
+                                        .foregroundColor(.neonGreen)
+                                }
+                            }
+                        } else {
+                            // Local image
+                            Image(user.profilePicURL)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 180, height: 180)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                        }
                     } else {
                         Image(systemName: "person.circle.fill")
                             .resizable()
@@ -43,9 +73,6 @@ struct ProfileView: View {
                             .background(Color.black)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
-                            .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
-                            .offset(y: -60)
-                            .padding(.bottom, -60)
                     }
                     
                     // User Info
