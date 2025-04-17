@@ -4,10 +4,27 @@ struct User {
     let uid: String
     let email: String
     let username: String
-    let profilePicURL: String
-    let age: Int
-    let phoneNumber: String
-    let bio: String = "Book lover, sports fanatic, and lifelong fan of The Weeknd. Whether I'm diving into a great novel, catching the latest game, or vibing to XO classics, I'm all about passion and community."
+    var firstName: String
+    var lastName: String
+    var profilePicURL: String
+    var age: Int
+    var phoneNumber: String
+    var bio: String
+    
+    // Default initialization with empty values
+    static func defaultUser(uid: String, email: String) -> User {
+        return User(
+            uid: uid,
+            email: email,
+            username: email.components(separatedBy: "@").first ?? "user",
+            firstName: "",
+            lastName: "",
+            profilePicURL: "default_profile",
+            age: 0,
+            phoneNumber: "",
+            bio: ""
+        )
+    }
 }
 
 struct Athlete: Identifiable {

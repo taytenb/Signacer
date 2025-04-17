@@ -7,7 +7,8 @@ struct LoginView: View {
     @State private var username = ""
     @State private var isRegistering = false
     @State private var showForgotPassword = false
-    @State private var navigateToWelcome = false
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
     
     var body: some View {
         VStack(spacing: 20) {
@@ -22,15 +23,30 @@ struct LoginView: View {
             SecureField("Password", text: $password)
                 .textFieldStyle(CustomTextFieldStyle())
             
+            if isRegistering {
+                TextField("Username", text: $username)
+                    .textFieldStyle(CustomTextFieldStyle())
+            }
+            
             Button(action: {
                 if isRegistering {
-                    // Simulate registration by creating a dummy user
-                    let newUser = User(uid: UUID().uuidString, email: email, username: "", profilePicURL: "", age: 0, phoneNumber: "")
-                    authViewModel.user = newUser
-                    navigateToWelcome = true
+                    // Use proper Firebase authentication
+                    if !email.isEmpty && !password.isEmpty && !username.isEmpty {
+                        authViewModel.signUp(email: email, password: password, username: username) { success in
+                            if success {
+                                // Navigation will be handled by the AuthViewModel through the user state change
+                            } else {
+                                alertMessage = authViewModel.error ?? "Registration failed"
+                                showingAlert = true
+                            }
+                        }
+                    } else {
+                        alertMessage = "Please fill in all fields"
+                        showingAlert = true
+                    }
                 } else {
                     authViewModel.signIn(email: email, password: password)
-                    navigateToWelcome = true
+                    // Navigation will be handled by the AuthViewModel through the user state change
                 }
             }) {
                 Text(isRegistering ? "Create Account" : "Sign In")
@@ -56,6 +72,9 @@ struct LoginView: View {
         .padding()
         .background(Color.black)
         .edgesIgnoringSafeArea(.all)
+        .alert(isPresented: $showingAlert) {
+            Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
     }
 }
 

@@ -24,18 +24,40 @@ struct ProfileView: View {
                 // Profile Header
                 VStack(spacing: 16) {
                     // Profile Image (positioned to overlap the banner)
-                    Image("Jaren")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 180, height: 180)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
-                        .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
-                        .offset(y: -60)
-                        .padding(.bottom, -60)
+                    if let user = authViewModel.user, user.profilePicURL != "default_profile" {
+                        Image(user.profilePicURL)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 180, height: 180)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                            .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
+                            .offset(y: -60)
+                            .padding(.bottom, -60)
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 180, height: 180)
+                            .foregroundColor(.neonGreen)
+                            .background(Color.black)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                            .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
+                            .offset(y: -60)
+                            .padding(.bottom, -60)
+                    }
                     
                     // User Info
                     VStack(spacing: 8) {
+                        // Display full name if available
+                        if let user = authViewModel.user, !user.firstName.isEmpty && !user.lastName.isEmpty {
+                            Text("\(user.firstName) \(user.lastName)")
+                                .font(.title)
+                                .bold()
+                                .foregroundColor(.white)
+                        }
+                        
                         Text("@\(authViewModel.user?.username ?? "itvsjmoney")")
                             .font(.title)
                             .bold()
@@ -137,6 +159,29 @@ struct ProfileView: View {
                     .padding(.horizontal)
                 }
                 .padding(.vertical, 20)
+                
+                // Admin Button - Only shown for your account
+                if authViewModel.user?.uid == "Ufq2rniOciUcDa0lqh5B2wZXe6F3" {
+                    NavigationLink(destination: AdminView()) {
+                        HStack {
+                            Image(systemName: "lock.shield")
+                                .foregroundColor(.red)
+                            
+                            Text("Admin Panel")
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.red, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
+                    }
+                    .padding(.bottom, 20)
+                }
                 
                 Spacer()
             }

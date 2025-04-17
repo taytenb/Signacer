@@ -3,7 +3,6 @@ import SwiftUI
 struct WelcomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var isShowingQRScanner = false
-    @State private var navigateToOnboarding = false
     @State private var navigateToHome = false
     
     var body: some View {
@@ -27,16 +26,12 @@ struct WelcomeView: View {
                 print("Scanned QR Code: \(scannedCode)")
                 isShowingQRScanner = false
                 
-                // Remove the delay and check onboarding status immediately
-                if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-                    navigateToOnboarding = true
-                } else {
-                    navigateToHome = true
-                }
+                // Process the scanned QR code with the authViewModel
+                authViewModel.handleScannedCard(cardId: scannedCode)
+                
+                // Always navigate to home after scanning
+                navigateToHome = true
             }
-        }
-        .fullScreenCover(isPresented: $navigateToOnboarding) {
-            OnboardingView()
         }
         .fullScreenCover(isPresented: $navigateToHome) {
             HomeView()

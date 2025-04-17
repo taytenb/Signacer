@@ -1,200 +1,12 @@
 import SwiftUI
+import Firebase
+import FirebaseFirestore
+import FirebaseAuth
 
 struct HomeView: View {
     @State private var navigateToProfile = false
-    // Assuming you store the username in UserDefaults during onboarding
-    private var username: String {
-        UserDefaults.standard.string(forKey: "username") ?? "User"
-    }
-    
-    
-    // Updated athlete cards array with both athletes
-    private let athleteCards: [AthleteCard] = [
-        // Justin Jefferson Card
-        AthleteCard(
-            athlete: Athlete(
-                id: "athlete1",
-                name: "Justin Jefferson",
-                profilePicURL: "AthleteJJ",
-                highlightVideoURL: "JJGIF",
-                perks: [
-                    Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com", imageURL: "Amazon"),
-                    Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com", imageURL: "Gatorade"),
-                    Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com", imageURL: "Underarmour"),
-                    Perk(id: "perk4", title: "Oakley Discount", link: "https://www.oakley.com", imageURL: "Oakley")
-                ],
-                events: [
-                    Event(
-                        id: "event1",
-                        title: "Justin Jefferson Pop-Up Event",
-                        description: "Meet Justin at a special brand pop-up event",
-                        date: Date().addingTimeInterval(14*24*60*60),
-                        location: "Minneapolis, MN",
-                        maxGuests: 100,
-                        isRSVPed: false,
-                        imageURL: "PopupEventJJ"
-                    ),
-                    Event(
-                        id: "event2",
-                        title: "7-on-7 Tournament by Jettas",
-                        description: "Join Justin's tournament for young athletes",
-                        date: Date().addingTimeInterval(30*24*60*60),
-                        location: "US Bank Stadium",
-                        maxGuests: 200,
-                        isRSVPed: false,
-                        imageURL: "JJ7on7"
-                    ),
-                    Event(
-                        id: "event3",
-                        title: "Zoom Q&A Session",
-                        description: "Virtual Q&A with Justin Jefferson",
-                        date: Date().addingTimeInterval(7*24*60*60),
-                        location: "Online",
-                        maxGuests: 500,
-                        isRSVPed: false,
-                        imageURL: "zoom"
-                    )
-                ],
-                communities: [
-                    Community(id: "comm1", title: "Discord Community", link: "https://discord.com", imageURL: "Discord"),
-                    Community(id: "comm2", title: "Social Impact Initiative", link: "https://charity.org", imageURL: "Charity")
-                ],
-                giveaways: [
-                    Giveaway(
-                        id: "give1",
-                        title: "Signed Game Item",
-                        description: "Win a signed item from every game ($5 entry)",
-                        imageURL: "auto",
-                        endDate: Date().addingTimeInterval(90*24*60*60),
-                        isEntered: false
-                    ),
-                    Giveaway(
-                        id: "give2",
-                        title: "Game Ticket Giveaway",
-                        description: "Win tickets to an upcoming Vikings game",
-                        imageURL: "tickets",
-                        endDate: Date().addingTimeInterval(45*24*60*60),
-                        isEntered: false
-                    ),
-                    Giveaway(
-                        id: "give3",
-                        title: "Brand Gift Bag",
-                        description: "Win Under Armour shoes, Oakley glasses, and more",
-                        imageURL: "cleats white",
-                        endDate: Date().addingTimeInterval(60*24*60*60),
-                        isEntered: false
-                    )
-                ],
-                contentURL: "https://youtube.com",
-                polls: [
-                    Poll(
-                        id: "poll1",
-                        question: "What cleats should I wear?",
-                        options: ["Purple", "White", "Yellow"],
-                        endDate: Date().addingTimeInterval(3*24*60*60)
-                    )
-                ]
-            ),
-            backgroundImage: "JustinJefferson",
-            rarity: "1/100"
-        ),
-        
-        // Sean O'Malley Card
-        AthleteCard(
-            athlete: Athlete(
-                id: "athlete2",
-                name: "Sean O'Malley",
-                profilePicURL: "SeanOMalley",
-                highlightVideoURL: "SeanGIF",
-                perks: [
-                    Perk(id: "perk1", title: "PrizePicks – Free $20 for New Sign-Up", link: "https://prizepicks.com", imageURL: "PrizePicks"),
-                    Perk(id: "perk2", title: "RYSE – First Protein Powder Free & 20% off bundles", link: "https://rysesupps.com", imageURL: "RYSE"),
-                    Perk(id: "perk3", title: "YoungLA – Buy 1, Get 1 Free on shirts", link: "https://youngla.com", imageURL: "YoungLA"),
-                    Perk(id: "perk4", title: "Sanabul – 25% off", link: "https://sanabul.com", imageURL: "Sanabul"),
-                    Perk(id: "perk5", title: "Happy Dad – 15% off & Free Hat", link: "https://happydad.com", imageURL: "HappyDad"),
-                    Perk(id: "perk6", title: "W – Free First Bundle & 10% off", link: "https://w.com", imageURL: "WBrand")
-                ],
-                events: [
-                    Event(
-                        id: "event1",
-                        title: "Jobin Zoom Q&A",
-                        description: "Virtual Q&A session with Sean",
-                        date: Date().addingTimeInterval(10*24*60*60),
-                        location: "Online",
-                        maxGuests: 300,
-                        isRSVPed: false,
-                        imageURL: "zoom"
-                    ),
-                    Event(
-                        id: "event2",
-                        title: "Jobin MMA Crash Course",
-                        description: "Learn MMA basics with Sean",
-                        date: Date().addingTimeInterval(21*24*60*60),
-                        location: "Las Vegas, NV",
-                        maxGuests: 50,
-                        isRSVPed: false,
-                        imageURL: "MMAClass"
-                    ),
-                    Event(
-                        id: "event3",
-                        title: "Jobin Pop-Up with Brand Shop",
-                        description: "Meet Sean and shop exclusive merch",
-                        date: Date().addingTimeInterval(35*24*60*60),
-                        location: "Phoenix, AZ",
-                        maxGuests: 150,
-                        isRSVPed: false,
-                        imageURL: "SeanPopup"
-                    )
-                ],
-                communities: [
-                    Community(id: "comm1", title: "Patreon Community", link: "https://patreon.com", imageURL: "Patreon")
-                ],
-                giveaways: [
-                    Giveaway(
-                        id: "give1",
-                        title: "UFC Tickets Experience",
-                        description: "Win tickets to an upcoming UFC event",
-                        imageURL: "UFCTickets",
-                        endDate: Date().addingTimeInterval(60*24*60*60),
-                        isEntered: false
-                    ),
-                    Giveaway(
-                        id: "give2",
-                        title: "Weekend with Suga Show",
-                        description: "Spend a weekend with Sean and the RHH Pod team",
-                        imageURL: "SugaWeekend",
-                        endDate: Date().addingTimeInterval(90*24*60*60),
-                        isEntered: false
-                    ),
-                    Giveaway(
-                        id: "give3",
-                        title: "Cold Plunge",
-                        description: "Win a premium cold plunge tub",
-                        imageURL: "ColdPlunge",
-                        endDate: Date().addingTimeInterval(45*24*60*60),
-                        isEntered: false
-                    )
-                ],
-                contentURL: "https://youtube.com",
-                polls: [
-                    Poll(
-                        id: "poll1",
-                        question: "What color shorts should I wear for the next fight?",
-                        options: ["Pink", "Red", "Blue", "Black"],
-                        endDate: Date().addingTimeInterval(14*24*60*60)
-                    ),
-                    Poll(
-                        id: "poll2",
-                        question: "Who should I fight next?",
-                        options: ["Merab", "Petr Yan", "Umar"],
-                        endDate: Date().addingTimeInterval(30*24*60*60)
-                    )
-                ]
-            ),
-            backgroundImage: "SeanOMalley",
-            rarity: "1/50"
-        )
-    ]
+    @StateObject private var viewModel = HomeViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         NavigationView {
@@ -228,29 +40,52 @@ struct HomeView: View {
                     
                     // Profile Section
                     VStack(spacing: 8) {
-                        Image("Jaren")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 180, height: 180)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                        ZStack(alignment: .bottomTrailing) {
+                            // Profile image
+                            if let user = authViewModel.user, !user.profilePicURL.isEmpty {
+                                Image(user.profilePicURL)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 180, height: 180)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 180, height: 180)
+                                    .foregroundColor(.neonGreen)
+                                    .background(Color.black)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                            }
+                            
+                            // Edit button overlay
+                            NavigationLink(destination: EditProfileView()) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.neonGreen)
+                                        .frame(width: 50, height: 50)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 2)
+                                    
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.black)
+                                }
+                            }
+                        }
                         
-                        Text("Jaren Moreland")
+                        Text(authViewModel.user?.firstName ?? "User")
                             .font(.title)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                         
-                        Text("@itvsjmoney")
-                            .font(.title3)
+                        
+                        
+                        Text("@\(authViewModel.user?.username ?? "user")")
+                            .font(.title2)
                             .foregroundColor(.gray)
                         
-                        // Add the bio text here
-//                        Text("Book lover, sports fanatic, and lifelong fan of The Weeknd. Whether I'm diving into a great novel, catching the latest game, or vibing to XO classics, I'm all about passion and community.")
-//                            .font(.body)
-//                            .foregroundColor(.white)
-//                            .multilineTextAlignment(.center)
-//                            .padding(.horizontal, 20)
-//                            .padding(.top, 8)
                     }
                     .padding(.vertical)
                     
@@ -262,22 +97,296 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
                     
-                    // Athlete Cards Grid
-                    LazyVGrid(columns: [GridItem(.flexible())], spacing: 15) {
-                        ForEach(athleteCards) { card in
-                            NavigationLink(destination: AthleteView(athlete: card.athlete)) {
-                                AthleteCardView(card: card)
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .neonGreen))
+                            .scaleEffect(1.5)
+                            .padding()
+                    } else if let error = viewModel.error {
+                        VStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(.red)
+                                .padding()
+                            
+                            Text("Error loading cards: \(error)")
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            
+                            Button("Try Again") {
+                                viewModel.fetchUserCards()
+                            }
+                            .padding()
+                            .background(Color.neonGreen)
+                            .foregroundColor(.black)
+                            .cornerRadius(8)
+                        }
+                        .padding()
+                    } else if viewModel.athleteCards.isEmpty {
+                        VStack {
+                            Image(systemName: "creditcard")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(.gray)
+                                .padding()
+                            
+                            Text("You don't have any cards yet.")
+                                .foregroundColor(.white)
+                                .padding()
+                            
+                            // In a real app, you might add a button to get cards
+                            Button("Scan a Card") {
+                                // This would be implemented to handle scanning QR codes
+                                // or some other way to acquire cards
+                            }
+                            .padding()
+                            .background(Color.neonGreen)
+                            .foregroundColor(.black)
+                            .cornerRadius(8)
+                        }
+                        .padding()
+                    } else {
+                        // Athlete Cards Grid
+                        LazyVGrid(columns: [GridItem(.flexible())], spacing: 15) {
+                            ForEach(viewModel.athleteCards) { card in
+                                NavigationLink(destination: AthleteView(athlete: card.athlete)) {
+                                    AthleteCardView(card: card)
+                                }
                             }
                         }
+                        .padding()
                     }
-                    .padding()
                 }
             }
             .background(Color.black)
             .edgesIgnoringSafeArea(.all)
             .navigationBarHidden(true)
+            .onAppear {
+                viewModel.fetchUserCards()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
+
+class HomeViewModel: ObservableObject {
+    @Published var athleteCards: [AthleteCard] = []
+    @Published var isLoading = false
+    @Published var error: String? = nil
+    
+    func fetchUserCards() {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            // Fallback to using mock data for preview or if not logged in
+            athleteCards = mockAthleteCards()
+            return
+        }
+        
+        isLoading = true
+        error = nil
+        
+        FirestoreManager.shared.fetchUserCards(userId: userId) { [weak self] cards in
+            self?.isLoading = false
+            self?.athleteCards = cards
+            
+            // If no cards found, use mock data for new users
+            if cards.isEmpty {
+                self?.athleteCards = self?.mockAthleteCards() ?? []
+            }
+        }
+    }
+    
+    // Mock data for preview and new users
+    private func mockAthleteCards() -> [AthleteCard] {
+        return [
+            // Justin Jefferson Card
+            AthleteCard(
+                athlete: Athlete(
+                    id: "athlete1",
+                    name: "Justin Jefferson",
+                    profilePicURL: "AthleteJJ",
+                    highlightVideoURL: "JJGIF",
+                    perks: [
+                        Perk(id: "perk1", title: "15% off Amazon", link: "https://amazon.com", imageURL: "Amazon"),
+                        Perk(id: "perk2", title: "10% off Gatorade", link: "https://gatorade.com", imageURL: "Gatorade"),
+                        Perk(id: "perk3", title: "5% off Under Armor", link: "https://underarmour.com", imageURL: "Underarmour"),
+                        Perk(id: "perk4", title: "Oakley Discount", link: "https://www.oakley.com", imageURL: "Oakley")
+                    ],
+                    events: [
+                        Event(
+                            id: "event1",
+                            title: "Justin Jefferson Pop-Up Event",
+                            description: "Meet Justin at a special brand pop-up event",
+                            date: Date().addingTimeInterval(14*24*60*60),
+                            location: "Minneapolis, MN",
+                            maxGuests: 100,
+                            isRSVPed: false,
+                            imageURL: "PopupEventJJ"
+                        ),
+                        Event(
+                            id: "event2",
+                            title: "7-on-7 Tournament by Jettas",
+                            description: "Join Justin's tournament for young athletes",
+                            date: Date().addingTimeInterval(30*24*60*60),
+                            location: "US Bank Stadium",
+                            maxGuests: 200,
+                            isRSVPed: false,
+                            imageURL: "JJ7on7"
+                        ),
+                        Event(
+                            id: "event3",
+                            title: "Zoom Q&A Session",
+                            description: "Virtual Q&A with Justin Jefferson",
+                            date: Date().addingTimeInterval(7*24*60*60),
+                            location: "Online",
+                            maxGuests: 500,
+                            isRSVPed: false,
+                            imageURL: "zoom"
+                        )
+                    ],
+                    communities: [
+                        Community(id: "comm1", title: "Discord Community", link: "https://discord.com", imageURL: "Discord"),
+                        Community(id: "comm2", title: "Social Impact Initiative", link: "https://charity.org", imageURL: "Charity")
+                    ],
+                    giveaways: [
+                        Giveaway(
+                            id: "give1",
+                            title: "Signed Game Item",
+                            description: "Win a signed item from every game ($5 entry)",
+                            imageURL: "auto",
+                            endDate: Date().addingTimeInterval(90*24*60*60),
+                            isEntered: false
+                        ),
+                        Giveaway(
+                            id: "give2",
+                            title: "Game Ticket Giveaway",
+                            description: "Win tickets to an upcoming Vikings game",
+                            imageURL: "tickets",
+                            endDate: Date().addingTimeInterval(45*24*60*60),
+                            isEntered: false
+                        ),
+                        Giveaway(
+                            id: "give3",
+                            title: "Brand Gift Bag",
+                            description: "Win Under Armour shoes, Oakley glasses, and more",
+                            imageURL: "cleats white",
+                            endDate: Date().addingTimeInterval(60*24*60*60),
+                            isEntered: false
+                        )
+                    ],
+                    contentURL: "https://youtube.com",
+                    polls: [
+                        Poll(
+                            id: "poll1",
+                            question: "What cleats should I wear?",
+                            options: ["Purple", "White", "Yellow"],
+                            endDate: Date().addingTimeInterval(3*24*60*60)
+                        )
+                    ]
+                ),
+                backgroundImage: "JustinJefferson",
+                rarity: "1/100"
+            ),
+            
+            // Sean O'Malley Card
+            AthleteCard(
+                athlete: Athlete(
+                    id: "athlete2",
+                    name: "Sean O'Malley",
+                    profilePicURL: "SeanOMalley",
+                    highlightVideoURL: "SeanGIF",
+                    perks: [
+                        Perk(id: "perk1", title: "PrizePicks – Free $20 for New Sign-Up", link: "https://prizepicks.com", imageURL: "PrizePicks"),
+                        Perk(id: "perk2", title: "RYSE – First Protein Powder Free & 20% off bundles", link: "https://rysesupps.com", imageURL: "RYSE"),
+                        Perk(id: "perk3", title: "YoungLA – Buy 1, Get 1 Free on shirts", link: "https://youngla.com", imageURL: "YoungLA"),
+                        Perk(id: "perk4", title: "Sanabul – 25% off", link: "https://sanabul.com", imageURL: "Sanabul"),
+                        Perk(id: "perk5", title: "Happy Dad – 15% off & Free Hat", link: "https://happydad.com", imageURL: "HappyDad"),
+                        Perk(id: "perk6", title: "W – Free First Bundle & 10% off", link: "https://w.com", imageURL: "WBrand")
+                    ],
+                    events: [
+                        Event(
+                            id: "event1",
+                            title: "Jobin Zoom Q&A",
+                            description: "Virtual Q&A session with Sean",
+                            date: Date().addingTimeInterval(10*24*60*60),
+                            location: "Online",
+                            maxGuests: 300,
+                            isRSVPed: false,
+                            imageURL: "zoom"
+                        ),
+                        Event(
+                            id: "event2",
+                            title: "Jobin MMA Crash Course",
+                            description: "Learn MMA basics with Sean",
+                            date: Date().addingTimeInterval(21*24*60*60),
+                            location: "Las Vegas, NV",
+                            maxGuests: 50,
+                            isRSVPed: false,
+                            imageURL: "MMAClass"
+                        ),
+                        Event(
+                            id: "event3",
+                            title: "Jobin Pop-Up with Brand Shop",
+                            description: "Meet Sean and shop exclusive merch",
+                            date: Date().addingTimeInterval(35*24*60*60),
+                            location: "Phoenix, AZ",
+                            maxGuests: 150,
+                            isRSVPed: false,
+                            imageURL: "SeanPopup"
+                        )
+                    ],
+                    communities: [
+                        Community(id: "comm1", title: "Patreon Community", link: "https://patreon.com", imageURL: "Patreon")
+                    ],
+                    giveaways: [
+                        Giveaway(
+                            id: "give1",
+                            title: "UFC Tickets Experience",
+                            description: "Win tickets to an upcoming UFC event",
+                            imageURL: "UFCTickets",
+                            endDate: Date().addingTimeInterval(60*24*60*60),
+                            isEntered: false
+                        ),
+                        Giveaway(
+                            id: "give2",
+                            title: "Weekend with Suga Show",
+                            description: "Spend a weekend with Sean and the RHH Pod team",
+                            imageURL: "SugaWeekend",
+                            endDate: Date().addingTimeInterval(90*24*60*60),
+                            isEntered: false
+                        ),
+                        Giveaway(
+                            id: "give3",
+                            title: "Cold Plunge",
+                            description: "Win a premium cold plunge tub",
+                            imageURL: "ColdPlunge",
+                            endDate: Date().addingTimeInterval(45*24*60*60),
+                            isEntered: false
+                        )
+                    ],
+                    contentURL: "https://youtube.com",
+                    polls: [
+                        Poll(
+                            id: "poll1",
+                            question: "What color shorts should I wear for the next fight?",
+                            options: ["Pink", "Red", "Blue", "Black"],
+                            endDate: Date().addingTimeInterval(14*24*60*60)
+                        ),
+                        Poll(
+                            id: "poll2",
+                            question: "Who should I fight next?",
+                            options: ["Merab", "Petr Yan", "Umar"],
+                            endDate: Date().addingTimeInterval(30*24*60*60)
+                        )
+                    ]
+                ),
+                backgroundImage: "SeanOMalley",
+                rarity: "1/50"
+            )
+        ]
     }
 }
 

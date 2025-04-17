@@ -4,20 +4,19 @@ import Firebase
 struct ContentView: View {
     @StateObject var authViewModel = AuthViewModel()
     @State private var showingSplash = true
-    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     
     var body: some View {
         Group {
             if showingSplash {
                 SplashView()
             } else if authViewModel.user == nil {
-                // New user flow
+                // User not authenticated - show sign in
                 NavigationView {
                     SignInView()
                 }
             } else {
-                // Returning user flow
-                WelcomeView()
+                // User is authenticated - check if onboarding is needed
+                AuthenticatedFlowCoordinator()
             }
         }
         .onAppear {
@@ -28,6 +27,31 @@ struct ContentView: View {
             }
         }
         .environmentObject(authViewModel)
+    }
+}
+
+// A coordinator view that handles the flow after authentication
+struct AuthenticatedFlowCoordinator: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var hasCompletedOnboarding: Bool = false
+    
+    var body: some View {
+        Group {
+            if !hasCompletedOnboarding {
+                OnboardingView(onboardingComplete: {
+                    hasCompletedOnboarding = true
+                })
+            } else {
+                WelcomeView()
+            }
+        }
+        .onAppear {
+            // Check if the user has completed onboarding
+            if let user = authViewModel.user {
+                // If user has age and phone number data, consider onboarding complete
+                hasCompletedOnboarding = user.age > 0 && !user.phoneNumber.isEmpty
+            }
+        }
     }
 }
 

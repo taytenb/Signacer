@@ -38,7 +38,6 @@ struct SignInView: View {
                 
                 // Google Sign In Button
                 Button(action: {
-                    // Simulated signup with Google
                     authViewModel.signInWithGoogle()
                 }) {
                     HStack {
@@ -54,7 +53,7 @@ struct SignInView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                         
                         Spacer()
-                            .frame(width: 24)  // Match icon width to maintain center alignment
+                            .frame(width: 24)
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
