@@ -109,31 +109,43 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
         }
     }
     
-    // Stub for Apple Sign In
-    func signInWithApple() {
+    // Updating Apple Sign In to include completion handler
+    func signInWithApple(completion: @escaping (Bool, String?) -> Void) {
         isLoading = true
+        currentNonce = randomNonceString()
         
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(currentNonce!)
         
         let authController = ASAuthorizationController(authorizationRequests: [request])
         authController.delegate = self
         authController.presentationContextProvider = self
         authController.performRequests()
+        
+        // Store completion handler
+        self.currentAuthCompletion = completion
     }
     
-    // Stub for Google Sign In
-    func signInWithGoogle() {
+    // Updating Google Sign In to include completion handler
+    func signInWithGoogle(completion: @escaping (Bool, String?) -> Void) {
         isLoading = true
         
-        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-        _ = GIDConfiguration(clientID: clientID)
+        guard let clientID = FirebaseApp.app()?.options.clientID else { 
+            self.isLoading = false
+            completion(false, "Missing client ID")
+            return
+        }
+        
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
         
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = windowScene.windows.first?.rootViewController else {
             self.isLoading = false
             self.error = "Cannot find root view controller"
+            completion(false, "Cannot find root view controller")
             return
         }
         
@@ -143,27 +155,37 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
             
             if let error = error {
                 self.error = error.localizedDescription
+                completion(false, error.localizedDescription)
                 return
             }
             
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
-                self.error = "Failed to get authentication data"
+                let errorMsg = "Failed to get authentication data"
+                self.error = errorMsg
+                completion(false, errorMsg)
                 return
             }
             
             let credential = GoogleAuthProvider.credential(withIDToken: idToken, 
                                                          accessToken: user.accessToken.tokenString)
-            self.authenticateWithFirebase(credential: credential)
+            self.authenticateWithFirebase(credential: credential) { success, error in
+                completion(success, error)
+            }
         }
     }
     
-    private func authenticateWithFirebase(credential: AuthCredential) {
+    // Update Firebase authentication to include completion handler
+    private func authenticateWithFirebase(credential: AuthCredential, completion: @escaping (Bool, String?) -> Void) {
         Auth.auth().signIn(with: credential) { [weak self] authResult, error in
-            guard let self = self else { return }
+            guard let self = self else { 
+                completion(false, "Self reference lost")
+                return 
+            }
             
             if let error = error {
                 self.error = error.localizedDescription
+                completion(false, error.localizedDescription)
                 return
             }
             
@@ -174,6 +196,7 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
                         // User exists, update the published user property
                         DispatchQueue.main.async {
                             self?.user = user
+                            completion(true, nil)
                         }
                     } else {
                         // User doesn't exist, create a new user in Firestore
@@ -196,13 +219,18 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
                             if success {
                                 DispatchQueue.main.async {
                                     self?.user = newUser
+                                    completion(true, nil)
                                 }
                             } else {
-                                self?.error = "Failed to create user profile"
+                                let errorMsg = "Failed to create user profile"
+                                self?.error = errorMsg
+                                completion(false, errorMsg)
                             }
                         }
                     }
                 }
+            } else {
+                completion(false, "Failed to retrieve user")
             }
         }
     }
@@ -241,26 +269,35 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
         return window
     }
     
+    // Update Apple Sign In delegate methods
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        self.isLoading = false
+        
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
             guard let nonce = currentNonce, let appleIDToken = appleIDCredential.identityToken,
                   let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
-                self.error = "Unable to fetch identity token"
+                let errorMsg = "Unable to fetch identity token"
+                self.error = errorMsg
+                currentAuthCompletion?(false, errorMsg)
                 return
             }
             
             let credential = OAuthProvider.credential(
-                providerID: AuthProviderID.apple, 
-                idToken: idTokenString, 
+                withProviderID: "apple.com",
+                idToken: idTokenString,
                 rawNonce: nonce
             )
-            authenticateWithFirebase(credential: credential)
+            
+            authenticateWithFirebase(credential: credential) { success, error in
+                self.currentAuthCompletion?(success, error)
+            }
         }
     }
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         self.isLoading = false
         self.error = error.localizedDescription
+        currentAuthCompletion?(false, error.localizedDescription)
     }
     
     // Adapted from Firebase documentation for nonce generation
@@ -308,4 +345,7 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
     
     // For Apple Sign In nonce
     private var currentNonce: String?
+    
+    // Add a property to store current auth completion
+    private var currentAuthCompletion: ((Bool, String?) -> Void)?
 }

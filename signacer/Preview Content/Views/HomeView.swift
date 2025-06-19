@@ -286,6 +286,7 @@ class HomeViewModel: ObservableObject {
             AthleteCard(
                 athlete: Athlete(
                     id: "athlete1",
+                    username: "justinjefferson",
                     name: "Justin Jefferson",
                     profilePicURL: "AthleteJJ",
                     highlightVideoURL: "JJGIF",
@@ -375,6 +376,7 @@ class HomeViewModel: ObservableObject {
             AthleteCard(
                 athlete: Athlete(
                     id: "athlete2",
+                    username: "seanomalley",
                     name: "Sean O'Malley",
                     profilePicURL: "SeanOMalley",
                     highlightVideoURL: "SeanGIF",

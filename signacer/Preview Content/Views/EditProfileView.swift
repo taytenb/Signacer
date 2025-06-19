@@ -15,7 +15,10 @@ struct EditProfileView: View {
     @State private var phoneNumber: String = ""
     @State private var showingImagePicker = false
     @State private var showingActionSheet = false
+    @State private var showingPhotoCropper = false
     @State private var selectedImage: UIImage?
+    @State private var croppedImage: UIImage?
+    @State private var rawSelectedImage: UIImage?
     @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
@@ -28,29 +31,40 @@ struct EditProfileView: View {
             VStack(spacing: 30) {
                 // Profile picture section
                 VStack(spacing: 15) {
-                    if let user = authViewModel.user, !user.profilePicURL.isEmpty {
-                        AsyncImage(url: URL(string: user.profilePicURL)) { image in
-                            image
+                    // Show croppedImage first, then selectedImage, then user profile pic, then default
+                    Group {
+                        if let croppedImage = croppedImage {
+                            Image(uiImage: croppedImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 140, height: 140)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
                                 .shadow(color: .neonGreen.opacity(0.5), radius: 5)
-                        } placeholder: {
+                        } else if let user = authViewModel.user, !user.profilePicURL.isEmpty {
+                            AsyncImage(url: URL(string: user.profilePicURL)) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 140, height: 140)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                    .shadow(color: .neonGreen.opacity(0.5), radius: 5)
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 140, height: 140)
+                                    .foregroundColor(.neonGreen)
+                            }
+                        } else {
                             Image(systemName: "person.circle.fill")
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 140, height: 140)
                                 .foregroundColor(.neonGreen)
+                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
                         }
-                    } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 140, height: 140)
-                            .foregroundColor(.neonGreen)
-                            .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
                     }
                     
                     Button(action: {
@@ -179,22 +193,41 @@ struct EditProfileView: View {
                     .default(Text("Photo Library")) {
                         showingImagePicker = true
                     },
+                    .default(Text("Camera")) {
+                        // TODO: Add camera functionality
+                        showingImagePicker = true
+                    },
                     .default(Text("Use Default Photo")) {
-                        // Reset to default profile picture
                         selectedImage = nil
+                        croppedImage = nil
+                        rawSelectedImage = nil
                     },
                     .cancel()
                 ]
             )
         }
         .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(selectedImage: $selectedImage)
+            ImagePicker(selectedImage: $rawSelectedImage)
+        }
+        .sheet(isPresented: $showingPhotoCropper) {
+            if let rawImage = rawSelectedImage {
+                PhotoCropperView(
+                    image: rawImage,
+                    croppedImage: $croppedImage,
+                    isPresented: $showingPhotoCropper
+                )
+            }
         }
         .alert(isPresented: $showingAlert) {
             Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
         .onAppear {
             loadUserData()
+        }
+        .onChange(of: rawSelectedImage) { newImage in
+            if newImage != nil {
+                showingPhotoCropper = true
+            }
         }
     }
     
@@ -218,12 +251,11 @@ struct EditProfileView: View {
         
         isLoading = true
         
-        // Handle image upload first if there's a new image
-        if let imageToUpload = selectedImage {
+        // Use croppedImage if available, otherwise use the original logic
+        if let imageToUpload = croppedImage {
             uploadProfileImage(imageToUpload, userId: user.uid) { result in
                 switch result {
                 case .success(let downloadURL):
-                    // Continue with user profile update using the new image URL
                     self.updateUserProfile(user: user, profileImageURL: downloadURL.absoluteString)
                 case .failure(let error):
                     self.isLoading = false
@@ -232,14 +264,13 @@ struct EditProfileView: View {
                 }
             }
         } else {
-            // No new image, just update the profile with existing image URL
             updateUserProfile(user: user, profileImageURL: user.profilePicURL)
         }
     }
     
     private func uploadProfileImage(_ image: UIImage, userId: String, completion: @escaping (Result<URL, Error>) -> Void) {
         // Compress the image to reduce storage costs
-        guard let imageData = image.jpegData(compressionQuality: 0.5) else {
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             completion(.failure(NSError(domain: "app", code: 0, userInfo: [NSLocalizedDescriptionKey: "Could not convert image to data"])))
             return
         }
@@ -320,10 +351,263 @@ struct EditProfileView: View {
     }
 }
 
-// Image Picker helper
+// Modern Photo Cropper View - Instagram/TikTok style
+struct PhotoCropperView: View {
+    let image: UIImage
+    @Binding var croppedImage: UIImage?
+    @Binding var isPresented: Bool
+    
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    
+    private let cropSize: CGFloat = 280
+    
+    var body: some View {
+        NavigationView {
+            GeometryReader { geometry in
+                ZStack {
+                    // Black background
+                    Color.black.ignoresSafeArea()
+                    
+                    VStack(spacing: 0) {
+                        // Header with cancel/done
+                        HStack {
+                            Button("Cancel") {
+                                isPresented = false
+                            }
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                            
+                            Spacer()
+                            
+                            Text("Move and Scale")
+                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .semibold))
+                            
+                            Spacer()
+                            
+                            Button("Done") {
+                                cropImage()
+                                isPresented = false
+                            }
+                            .foregroundColor(.neonGreen)
+                            .font(.system(size: 16, weight: .semibold))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .padding(.bottom, 20)
+                        
+                        Spacer()
+                        
+                        // Main cropping area
+                        ZStack {
+                            // Full-size image as background
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: geometry.size.width)
+                                .scaleEffect(scale)
+                                .offset(offset)
+                                .clipped()
+                                .gesture(
+                                    SimultaneousGesture(
+                                        // Pinch to zoom
+                                        MagnificationGesture()
+                                            .onChanged { value in
+                                                let delta = value / lastScale
+                                                lastScale = value
+                                                let newScale = scale * delta
+                                                scale = max(0.5, min(newScale, 4.0))
+                                            }
+                                            .onEnded { _ in
+                                                lastScale = 1.0
+                                            },
+                                        // Drag to move
+                                        DragGesture()
+                                            .onChanged { value in
+                                                let newOffset = CGSize(
+                                                    width: lastOffset.width + value.translation.width,
+                                                    height: lastOffset.height + value.translation.height
+                                                )
+                                                offset = newOffset
+                                            }
+                                            .onEnded { _ in
+                                                lastOffset = offset
+                                            }
+                                    )
+                                )
+                            
+                            // Overlay to darken everything outside the crop circle
+                            ZStack {
+                                // Dark overlay covering everything
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.7))
+                                    .frame(width: geometry.size.width, height: geometry.size.width)
+                                
+                                // Clear circle in the middle
+                                Circle()
+                                    .fill(Color.black)
+                                    .frame(width: cropSize, height: cropSize)
+                                    .blendMode(.destinationOut)
+                            }
+                            .compositingGroup()
+                            .allowsHitTesting(false)
+                            
+                            // Crop circle outline
+                            Circle()
+                                .stroke(Color.white, lineWidth: 2)
+                                .frame(width: cropSize, height: cropSize)
+                                .allowsHitTesting(false)
+                        }
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .clipped()
+                        
+                        Spacer()
+                        
+                        // Bottom controls
+                        VStack(spacing: 20) {
+                            // Zoom indicator
+                            HStack {
+                                Image(systemName: "minus.magnifyingglass")
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 14))
+                                
+                                Slider(value: $scale, in: 0.5...4.0)
+                                    .accentColor(.neonGreen)
+                                    .frame(maxWidth: 200)
+                                
+                                Image(systemName: "plus.magnifyingglass")
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 14))
+                            }
+                            .padding(.horizontal, 30)
+                            
+                            // Instructions
+                            VStack(spacing: 8) {
+                                Text("Drag to reposition")
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .font(.system(size: 14))
+                                Text("Pinch to zoom")
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .font(.system(size: 12))
+                            }
+                        }
+                        .padding(.bottom, 50)
+                    }
+                }
+            }
+        }
+        .navigationBarHidden(true)
+        .onAppear {
+            autoFitImage()
+        }
+    }
+    
+    private func autoFitImage() {
+        let imageSize = image.size
+        let imageAspectRatio = imageSize.width / imageSize.height
+        
+        // Calculate initial scale to fit image nicely in crop area
+        let minDimension = min(imageSize.width, imageSize.height)
+        scale = cropSize / minDimension * 1.1
+        
+        // Ensure reasonable bounds
+        scale = max(0.8, min(scale, 2.0))
+    }
+    
+    private func cropImage() {
+        // Create high-resolution output
+        let outputSize = CGSize(width: cropSize * 2, height: cropSize * 2) // 2x for retina quality
+        
+        let renderer = UIGraphicsImageRenderer(size: outputSize)
+        
+        let croppedImg = renderer.image { context in
+            // Create circular clipping path
+            let clipPath = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: outputSize.width, height: outputSize.height))
+            clipPath.addClip()
+            
+            // Calculate how the image appears in the display
+            let displaySize = UIScreen.main.bounds.width // The image display area is square
+            
+            // Calculate the image's natural display size (before scaling)
+            let imageSize = image.size
+            let imageAspectRatio = imageSize.width / imageSize.height
+            
+            var naturalDisplayWidth: CGFloat
+            var naturalDisplayHeight: CGFloat
+            
+            if imageAspectRatio > 1 {
+                // Wide image - fit to height
+                naturalDisplayHeight = displaySize
+                naturalDisplayWidth = naturalDisplayHeight * imageAspectRatio
+            } else {
+                // Tall or square image - fit to width
+                naturalDisplayWidth = displaySize
+                naturalDisplayHeight = naturalDisplayWidth / imageAspectRatio
+            }
+            
+            // Apply the user's scale
+            let scaledDisplayWidth = naturalDisplayWidth * scale
+            let scaledDisplayHeight = naturalDisplayHeight * scale
+            
+            // Calculate the crop region in display coordinates
+            let cropCenterX = displaySize / 2
+            let cropCenterY = displaySize / 2
+            
+            // Calculate image center in display coordinates (with offset)
+            let imageCenterX = displaySize / 2 + offset.width
+            let imageCenterY = displaySize / 2 + offset.height
+            
+            // Calculate the crop region relative to the image
+            let cropRelativeX = cropCenterX - imageCenterX
+            let cropRelativeY = cropCenterY - imageCenterY
+            
+            // Convert to image coordinates
+            let imageScaleX = imageSize.width / scaledDisplayWidth
+            let imageScaleY = imageSize.height / scaledDisplayHeight
+            
+            let cropInImageX = (cropRelativeX * imageScaleX) + (imageSize.width / 2)
+            let cropInImageY = (cropRelativeY * imageScaleY) + (imageSize.height / 2)
+            
+            // Calculate the crop region in image coordinates
+            let cropRadiusInImage = (cropSize / 2) * imageScaleX
+            
+            let sourceRect = CGRect(
+                x: cropInImageX - cropRadiusInImage,
+                y: cropInImageY - cropRadiusInImage,
+                width: cropRadiusInImage * 2,
+                height: cropRadiusInImage * 2
+            )
+            
+            // Draw only the cropped portion of the image
+            if let cgImage = image.cgImage,
+               let croppedCGImage = cgImage.cropping(to: sourceRect) {
+                let croppedUIImage = UIImage(cgImage: croppedCGImage)
+                croppedUIImage.draw(in: CGRect(x: 0, y: 0, width: outputSize.width, height: outputSize.height))
+            } else {
+                // Fallback: draw the full image scaled to fit
+                let drawRect = CGRect(
+                    x: -cropRelativeX * (outputSize.width / cropSize),
+                    y: -cropRelativeY * (outputSize.height / cropSize),
+                    width: scaledDisplayWidth * (outputSize.width / cropSize),
+                    height: scaledDisplayHeight * (outputSize.height / cropSize)
+                )
+                image.draw(in: drawRect)
+            }
+        }
+        
+        croppedImage = croppedImg
+    }
+}
+
+// Updated Image Picker with camera support
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImage: UIImage?
     @Environment(\.presentationMode) var presentationMode
+    
+    var sourceType: UIImagePickerController.SourceType = .photoLibrary
     
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
         let parent: ImagePicker
@@ -352,10 +636,19 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.sourceType = sourceType
+        picker.allowsEditing = false
         return picker
     }
     
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
-        // No updates needed
+        // No updates needed 
     }
-} 
+}
+
+//// Extension for neon green color
+//extension Color {
+//    static let neonGreen = Color(red: 0, green: 1, blue: 0.5)
+//}
+
+// I love the world and cherish it wholeheartedly

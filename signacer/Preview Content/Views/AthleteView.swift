@@ -99,7 +99,7 @@ struct AthleteView: View {
                                     }
                                 )
                         }
-                        Text("@\(athlete.name)")
+                        Text("@\(athlete.username)")
                             .font(.title)
                             .foregroundColor(.white)
                     }
@@ -609,6 +609,7 @@ struct GiveawayCard: View {
                 height: 150,
                 fallbackSystemName: "gift.fill"
             )
+            .allowsHitTesting(false)
             
             // Text content section
             VStack(alignment: .leading, spacing: 4) {

@@ -69,7 +69,7 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
     func setupOverlay() {
         // Add dimmed background with clear scanning area
         let overlayView = UIView(frame: bounds)
-        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
         
         // Calculate scanner frame - a square that's 50% of the smaller dimension
         let minDimension = min(bounds.width, bounds.height)
@@ -80,7 +80,7 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
         
         // Create scanner window (transparent cutout)
         let path = UIBezierPath(rect: bounds)
-        let scannerPath = UIBezierPath(roundedRect: scannerFrame, cornerRadius: 10)
+        let scannerPath = UIBezierPath(roundedRect: scannerFrame, cornerRadius: 20)
         path.append(scannerPath.reversing())
         
         let maskLayer = CAShapeLayer()

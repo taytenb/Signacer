@@ -2,19 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>GIDClientID</key>
-    <string>417385869449-97k3d7adrmh0drbsemmgpn83mfqvp9om.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.googleusercontent.apps.417385869449-cmt9v2dhv6bta03hcqao1kuuql1bjrtt</string>
-                <string>com.googleusercontent.apps.417385869449-97k3d7adrmh0drbsemmgpn83mfqvp9om</string>
-            </array>
-        </dict>
-    </array>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.417385869449-cmt9v2dhv6bta03hcqao1kuuql1bjrtt</string>
+				<string>com.googleusercontent.apps.417385869449-97k3d7adrmh0drbsemmgpn83mfqvp9om</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>417385869449-ofbp3v05dvdd9sl3389np7qtmbt806q6.apps.googleusercontent.com</string>
 </dict>
 </plist>

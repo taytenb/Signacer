@@ -109,7 +109,7 @@ struct ProfileView: View {
                                 .background(Color.gray.opacity(0.3))
                             
                             VStack {
-                                Text("2024")
+                                Text("2025")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 Text("Joined")
@@ -139,9 +139,9 @@ struct ProfileView: View {
                         .padding(.horizontal)
                     
                     HStack(spacing: 20) {
-                        ActivityCard(title: "Cards", value: "5", iconName: "creditcard.fill")
-                        ActivityCard(title: "Events", value: "2", iconName: "calendar")
-                        ActivityCard(title: "Athletes", value: "3", iconName: "person.fill")
+                        ActivityCard(title: "Cards", value: "2", iconName: "creditcard.fill")
+                        ActivityCard(title: "Events", value: "4", iconName: "calendar")
+                        ActivityCard(title: "Polls", value: "7", iconName: "person.fill")
                     }
                     .padding(.horizontal)
                 }
@@ -149,7 +149,7 @@ struct ProfileView: View {
                 
                 // My Cards Section
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("My Cards")
+                    Text("My Giveaways")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -158,34 +158,34 @@ struct ProfileView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 15) {
                             CardView(image: "Jersey", title: "Game Jersey")
-                            CardView(image: "WBrand", title: "Athlete Brand")
-                            CardView(image: "Gatorade", title: "Sponsor")
+                            CardView(image: "tickets", title: "Tickets")
+                            CardView(image: "Gatorade", title: "Gatorade Merch")
                         }
                         .padding(.horizontal)
                     }
                 }
                 .padding(.vertical, 10)
                 
-                // Settings Button
-                Button(action: { showSettings = true }) {
-                    HStack {
-                        Image(systemName: "gear")
-                            .foregroundColor(.neonGreen)
+                // // Settings Button
+                // Button(action: { showSettings = true }) {
+                //     HStack {
+                //         Image(systemName: "gear")
+                //             .foregroundColor(.neonGreen)
                         
-                        Text("Settings")
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.neonGreen, lineWidth: 1)
-                    )
-                    .padding(.horizontal)
-                }
-                .padding(.vertical, 20)
+                //         Text("Settings")
+                //             .foregroundColor(.white)
+                //     }
+                //     .frame(maxWidth: .infinity)
+                //     .padding()
+                //     .background(Color.black.opacity(0.6))
+                //     .cornerRadius(12)
+                //     .overlay(
+                //         RoundedRectangle(cornerRadius: 12)
+                //             .stroke(Color.neonGreen, lineWidth: 1)
+                //     )
+                //     .padding(.horizontal)
+                // }
+                // .padding(.vertical, 20)
                 
                 // Admin Button - Only shown for your account
                 if authViewModel.user?.uid == "Ufq2rniOciUcDa0lqh5B2wZXe6F3" {
@@ -209,6 +209,29 @@ struct ProfileView: View {
                     }
                     .padding(.bottom, 20)
                 }
+                
+                // Logout Button
+                Button(action: {
+                    authViewModel.signOut()
+                }) {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .foregroundColor(.white)
+                        
+                        Text("Logout")
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white, lineWidth: 1)
+                    )
+                    .padding(.horizontal)
+                }
+                .padding(.bottom, 30)
                 
                 Spacer()
             }

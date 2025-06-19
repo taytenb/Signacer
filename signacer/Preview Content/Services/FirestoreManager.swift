@@ -208,6 +208,7 @@ class FirestoreManager {
             dispatchGroup.notify(queue: .main) {
                 let athlete = Athlete(
                     id: athleteId,
+                    username: data["username"] as? String ?? "",
                     name: data["name"] as? String ?? "",
                     profilePicURL: data["profilePicURL"] as? String ?? "",
                     highlightVideoURL: data["highlightVideoURL"] as? String ?? "",

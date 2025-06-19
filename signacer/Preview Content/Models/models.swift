@@ -29,6 +29,7 @@ struct User {
 
 struct Athlete: Identifiable {
     let id: String
+    let username: String
     let name: String
     let profilePicURL: String
     let highlightVideoURL: String
