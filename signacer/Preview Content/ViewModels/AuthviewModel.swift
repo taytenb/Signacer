@@ -235,29 +235,125 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
         }
     }
     
-    func handleScannedCard(cardId: String) {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+    func handleScannedCard(cardId: String, completion: @escaping (Bool, String?) -> Void) {
+        guard let userId = Auth.auth().currentUser?.uid else { 
+            completion(false, "User not authenticated")
+            return 
+        }
+        
+        // Validate and parse card ID
+        let trimmedCardId = cardId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCardId.isEmpty else {
+            completion(false, "Invalid card ID")
+            return
+        }
+        
+        var actualCardId: String = trimmedCardId
+        
+        // If it's JSON format, extract the uuid
+        if trimmedCardId.hasPrefix("{") && trimmedCardId.hasSuffix("}") {
+            guard let data = trimmedCardId.data(using: .utf8) else {
+                completion(false, "Invalid card format")
+                return
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let uuid = json["uuid"] as? String, !uuid.isEmpty {
+                    actualCardId = uuid
+                } else {
+                    completion(false, "Invalid card format - missing uuid")
+                    return
+                }
+            } catch {
+                completion(false, "Invalid card format - not valid JSON")
+                return
+            }
+        }
+        
+        // Validate the final card ID for Firestore compatibility
+        guard isValidFirestoreDocumentId(actualCardId) else {
+            completion(false, "Unknown QR Code - Invalid format")
+            return
+        }
         
         let db = Firestore.firestore()
-        db.collection("cards").document(cardId).getDocument { [weak self] document, error in
-            if let document = document, document.exists {
+        
+        // Wrap the Firestore call in a do-catch to handle any Firebase exceptions
+        do {
+            db.collection("cards").document(actualCardId).getDocument { [weak self] document, error in
+                // Handle Firestore errors
+                if let error = error {
+                    print("Error fetching card: \(error.localizedDescription)")
+                    completion(false, "Failed to verify card: \(error.localizedDescription)")
+                    return
+                }
+                
+                // Check if document exists and has data
+                guard let document = document, document.exists else {
+                    print("Card not found: \(actualCardId)")
+                    completion(false, "Unknown QR Code - Card not found in database")
+                    return
+                }
+                
                 let data = document.data() ?? [:]
                 let athleteId = data["athleteId"] as? String ?? ""
                 let rarity = data["rarity"] as? String ?? ""
                 
+                // Validate card data
+                guard !athleteId.isEmpty else {
+                    completion(false, "Invalid card data")
+                    return
+                }
+                
                 // Add card to user's collection
                 FirestoreManager.shared.addCardToUser(
                     userId: userId,
-                    cardId: cardId,
+                    cardId: actualCardId,
                     athleteId: athleteId,
                     rarity: rarity
                 ) { success in
                     if success {
-                        // Refresh user's cards if needed
+                        print("Card successfully added to user collection")
+                        completion(true, nil)
+                    } else {
+                        completion(false, "Failed to add card to your collection")
                     }
                 }
             }
+        } catch {
+            print("Firebase exception: \(error.localizedDescription)")
+            completion(false, "Unknown QR Code - Invalid format")
         }
+    }
+    
+    // Helper method to validate Firestore document ID
+    private func isValidFirestoreDocumentId(_ documentId: String) -> Bool {
+        // Firestore document IDs must be valid UTF-8 strings
+        // Cannot contain certain characters like /, \, ?, #, [, ], etc.
+        // Cannot be empty or exceed 1500 bytes
+        
+        guard !documentId.isEmpty && documentId.count <= 1500 else {
+            return false
+        }
+        
+        // Check for invalid characters
+        let invalidCharacters = CharacterSet(charactersIn: "/\\?#[]")
+        if documentId.rangeOfCharacter(from: invalidCharacters) != nil {
+            return false
+        }
+        
+        // Check for double slashes or other problematic patterns
+        if documentId.contains("//") || documentId.contains("..") {
+            return false
+        }
+        
+        // Check if it starts or ends with a dot
+        if documentId.hasPrefix(".") || documentId.hasSuffix(".") {
+            return false
+        }
+        
+        return true
     }
     
     // MARK: - Apple Sign In Extensions

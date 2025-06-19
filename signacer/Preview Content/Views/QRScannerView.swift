@@ -3,7 +3,7 @@ import AVFoundation
 
 struct QRScannerView: UIViewRepresentable {
     typealias UIViewType = ScannerUIView
-    var completion: (String) -> Void
+    var completion: (Result<String, QRScanError>) -> Void
     
     func makeUIView(context: Context) -> ScannerUIView {
         let view = ScannerUIView()
@@ -16,13 +16,37 @@ struct QRScannerView: UIViewRepresentable {
     }
 }
 
+enum QRScanError: Error, LocalizedError {
+    case cameraUnavailable
+    case cameraAccessDenied
+    case invalidQRCode
+    case scanningFailed
+    case unknown(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .cameraUnavailable:
+            return "Camera is not available"
+        case .cameraAccessDenied:
+            return "Camera access denied. Please enable camera access in Settings."
+        case .invalidQRCode:
+            return "Unknown QR Code"
+        case .scanningFailed:
+            return "QR code scanning failed"
+        case .unknown(let message):
+            return message
+        }
+    }
+}
+
 class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
-    var completion: ((String) -> Void)?
+    var completion: ((Result<String, QRScanError>) -> Void)?
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     private var scannerOverlayView: UIView?
     private var animationTimer: Timer?
     private var isAnimatingUp = false
+    private var hasScanned = false // Prevent multiple scans
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -35,35 +59,79 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
     }
     
     func setupSession() {
-        captureSession = AVCaptureSession()
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
-              let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice),
-              let captureSession = captureSession else { return }
-        
-        if captureSession.canAddInput(videoInput) {
-            captureSession.addInput(videoInput)
-        } else {
-            return
+        // Check camera permission first
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            configureCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.configureCamera()
+                    } else {
+                        self?.completion?(.failure(.cameraAccessDenied))
+                    }
+                }
+            }
+        case .denied, .restricted:
+            completion?(.failure(.cameraAccessDenied))
+        @unknown default:
+            completion?(.failure(.cameraUnavailable))
         }
+    }
+    
+    private func configureCamera() {
+        guard !hasScanned else { return }
         
-        let metadataOutput = AVCaptureMetadataOutput()
-        if captureSession.canAddOutput(metadataOutput) {
-            captureSession.addOutput(metadataOutput)
-            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = [.qr]
-        } else {
-            return
+        do {
+            captureSession = AVCaptureSession()
+            
+            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+                completion?(.failure(.cameraUnavailable))
+                return
+            }
+            
+            let videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+            
+            guard let captureSession = captureSession else {
+                completion?(.failure(.cameraUnavailable))
+                return
+            }
+            
+            if captureSession.canAddInput(videoInput) {
+                captureSession.addInput(videoInput)
+            } else {
+                completion?(.failure(.cameraUnavailable))
+                return
+            }
+            
+            let metadataOutput = AVCaptureMetadataOutput()
+            if captureSession.canAddOutput(metadataOutput) {
+                captureSession.addOutput(metadataOutput)
+                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+                metadataOutput.metadataObjectTypes = [.qr, .code128, .code39, .ean8, .ean13, .pdf417]
+            } else {
+                completion?(.failure(.cameraUnavailable))
+                return
+            }
+            
+            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+            previewLayer?.frame = self.layer.bounds
+            previewLayer?.videoGravity = .resizeAspectFill
+            
+            if let previewLayer = previewLayer {
+                self.layer.addSublayer(previewLayer)
+            }
+            
+            setupOverlay()
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                captureSession.startRunning()
+            }
+            
+        } catch {
+            completion?(.failure(.cameraUnavailable))
         }
-        
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer?.frame = self.layer.bounds
-        previewLayer?.videoGravity = .resizeAspectFill
-        if let previewLayer = previewLayer {
-            self.layer.addSublayer(previewLayer)
-        }
-        
-        setupOverlay()
-        captureSession.startRunning()
     }
     
     func setupOverlay() {
@@ -130,16 +198,61 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
         corner.strokeColor = color
         corner.lineWidth = lineWidth
         corner.lineCap = .round
+        corner.fillColor = UIColor.clear.cgColor
         
         let path = UIBezierPath()
-        path.move(to: point)
+        let radius: CGFloat = 8 // Corner radius for the brackets
         
-        let horizontalPoint = CGPoint(x: point.x + (isHorizontal ? length : -length), y: point.y)
-        let verticalPoint = CGPoint(x: point.x, y: point.y + (isVertical ? length : -length))
+        // Calculate the offset from the corner point
+        let offsetX: CGFloat = isHorizontal ? radius : -radius
+        let offsetY: CGFloat = isVertical ? radius : -radius
         
-        path.addLine(to: horizontalPoint)
-        path.move(to: point)
-        path.addLine(to: verticalPoint)
+        // Start point for horizontal line (offset from corner)
+        let horizontalStart = CGPoint(x: point.x + offsetX, y: point.y)
+        let horizontalEnd = CGPoint(x: point.x + (isHorizontal ? length : -length), y: point.y)
+        
+        // Start point for vertical line (offset from corner)
+        let verticalStart = CGPoint(x: point.x, y: point.y + offsetY)
+        let verticalEnd = CGPoint(x: point.x, y: point.y + (isVertical ? length : -length))
+        
+        // Draw horizontal line
+        path.move(to: horizontalStart)
+        path.addLine(to: horizontalEnd)
+        
+        // Draw vertical line
+        path.move(to: verticalStart)
+        path.addLine(to: verticalEnd)
+        
+        // Draw the rounded corner connecting the two lines
+        path.move(to: horizontalStart)
+        
+        // Create a small arc to connect the horizontal and vertical lines
+        let centerX = point.x + (isHorizontal ? radius : -radius)
+        let centerY = point.y + (isVertical ? radius : -radius)
+        let center = CGPoint(x: centerX, y: centerY)
+        
+        let startAngle: CGFloat
+        let endAngle: CGFloat
+        
+        if isHorizontal && isVertical {
+            // Top-left corner
+            startAngle = CGFloat.pi
+            endAngle = 3 * CGFloat.pi / 2
+        } else if !isHorizontal && isVertical {
+            // Top-right corner
+            startAngle = 3 * CGFloat.pi / 2
+            endAngle = 0
+        } else if isHorizontal && !isVertical {
+            // Bottom-left corner
+            startAngle = CGFloat.pi / 2
+            endAngle = CGFloat.pi
+        } else {
+            // Bottom-right corner
+            startAngle = 0
+            endAngle = CGFloat.pi / 2
+        }
+        
+        path.addArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
         
         corner.path = path.cgPath
         return corner
@@ -148,19 +261,80 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
     func metadataOutput(_ output: AVCaptureMetadataOutput,
                         didOutput metadataObjects: [AVMetadataObject],
                         from connection: AVCaptureConnection) {
+        
+        guard !hasScanned else { return }
+        hasScanned = true
+        
         captureSession?.stopRunning()
         animationTimer?.invalidate()
         
-        if let metadataObject = metadataObjects.first,
-           let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
-           let stringValue = readableObject.stringValue {
+        guard let metadataObject = metadataObjects.first,
+              let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
+              let stringValue = readableObject.stringValue,
+              !stringValue.isEmpty else {
+            // Invalid or empty QR code
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.completion?(.failure(.invalidQRCode))
+            }
+            return
+        }
+        
+        // Validate QR code format (basic validation)
+        if isValidQRCode(stringValue) {
             AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
             
-            // Delay the completion by a moment to show the successful scan
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.completion?(stringValue)
+                self.completion?(.success(stringValue))
+            }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.completion?(.failure(.invalidQRCode))
             }
         }
+    }
+    
+    private func isValidQRCode(_ qrCode: String) -> Bool {
+        // Trim whitespace
+        let trimmedCode = qrCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check basic length requirements
+        guard !trimmedCode.isEmpty && trimmedCode.count >= 3 && trimmedCode.count <= 1000 else {
+            return false
+        }
+        
+        // Reject URLs immediately
+        if trimmedCode.lowercased().hasPrefix("http://") || 
+           trimmedCode.lowercased().hasPrefix("https://") ||
+           trimmedCode.lowercased().hasPrefix("www.") ||
+           trimmedCode.contains("://") {
+            return false
+        }
+        
+        // Check if it's a JSON format (expected format for cards)
+        if trimmedCode.hasPrefix("{") && trimmedCode.hasSuffix("}") {
+            // Try to parse as JSON to validate structure
+            guard let data = trimmedCode.data(using: .utf8) else { return false }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    // Check for required fields: uuid, athlete_id, user_id
+                    let hasUuid = json["uuid"] is String && !(json["uuid"] as! String).isEmpty
+                    let hasAthleteId = json["athlete_id"] != nil
+                    let hasUserId = json["user_id"] != nil
+                    
+                    return hasUuid && hasAthleteId && hasUserId
+                }
+            } catch {
+                return false
+            }
+        }
+        
+        // For non-JSON formats, check if it looks like a valid card ID
+        // (alphanumeric, hyphens, underscores only)
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        let characterSet = CharacterSet(charactersIn: trimmedCode)
+        
+        return allowedCharacters.isSuperset(of: characterSet) && trimmedCode.count >= 8
     }
     
     override func layoutSubviews() {
@@ -176,5 +350,6 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
     
     deinit {
         animationTimer?.invalidate()
+        captureSession?.stopRunning()
     }
 }

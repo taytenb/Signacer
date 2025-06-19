@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct MembershipQRScanView: View {
-    var onScanCompletion: (String) -> Void
+    var onScanCompletion: (String?) -> Void
     @State private var showScanner = true
     @State private var isScanning = true
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
     
     // Check if we're running on a Mac or in a simulator
     #if targetEnvironment(macCatalyst) || os(macOS)
@@ -27,21 +29,43 @@ struct MembershipQRScanView: View {
     var body: some View {
         ZStack {
             if showScanner && !shouldSkipScanning {
-                QRScannerView { scannedCode in
-                    print("QR Code scanned: \(scannedCode)")
-                    isScanning = false
-                    onScanCompletion(scannedCode)
+                QRScannerView { result in
+                    switch result {
+                    case .success(let scannedCode):
+                        print("QR Code scanned successfully: \(scannedCode)")
+                        isScanning = false
+                        onScanCompletion(scannedCode)
+                    case .failure(let error):
+                        print("QR Code scan failed: \(error.localizedDescription)")
+                        isScanning = false
+                        errorMessage = error.localizedDescription
+                        showingErrorAlert = true
+                    }
                 }
+                .cornerRadius(20)
+                .clipped()
+                .padding()
             }
             
             VStack(spacing: 20) {
-                Text(shouldSkipScanning ? "Processing..." : "Scanning Membership Card...")
-                    .font(.title)
-                    .foregroundColor(.white)
+                // Text(shouldSkipScanning ? "Processing..." : (isScanning ? "Scanning Membership Card..." : "Scan Complete"))
+                //     .font(.title)
+                //     .foregroundColor(.white)
                 
                 if shouldSkipScanning {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                }
+                
+                if !isScanning && !shouldSkipScanning {
+                    Button("Try Again") {
+                        isScanning = true
+                        showScanner = true
+                    }
+                    .padding()
+                    .background(Color.neonGreen)
+                    .foregroundColor(.black)
+                    .cornerRadius(8)
                 }
             }
         }
@@ -52,6 +76,18 @@ struct MembershipQRScanView: View {
                     onScanCompletion("dummyQR")
                 }
             }
+        }
+        .alert("Scan Error", isPresented: $showingErrorAlert) {
+            Button("Try Again") {
+                isScanning = true
+                showScanner = true
+                showingErrorAlert = false
+            }
+            Button("Cancel") {
+                onScanCompletion(nil)
+            }
+        } message: {
+            Text(errorMessage)
         }
         .background(Color.black)
         .edgesIgnoringSafeArea(.all)

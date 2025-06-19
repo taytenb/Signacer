@@ -364,6 +364,11 @@ struct PhotoCropperView: View {
     
     private let cropSize: CGFloat = 280
     
+    // Fixed orientation image
+    private var fixedImage: UIImage {
+        return image.fixedOrientation()
+    }
+    
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
@@ -403,8 +408,8 @@ struct PhotoCropperView: View {
                         
                         // Main cropping area
                         ZStack {
-                            // Full-size image as background
-                            Image(uiImage: image)
+                            // Full-size image as background - using fixedImage
+                            Image(uiImage: fixedImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: geometry.size.width, height: geometry.size.width)
@@ -506,7 +511,7 @@ struct PhotoCropperView: View {
     }
     
     private func autoFitImage() {
-        let imageSize = image.size
+        let imageSize = fixedImage.size // Use fixed image size
         let imageAspectRatio = imageSize.width / imageSize.height
         
         // Calculate initial scale to fit image nicely in crop area
@@ -531,8 +536,8 @@ struct PhotoCropperView: View {
             // Calculate how the image appears in the display
             let displaySize = UIScreen.main.bounds.width // The image display area is square
             
-            // Calculate the image's natural display size (before scaling)
-            let imageSize = image.size
+            // Calculate the image's natural display size (before scaling) - using fixedImage
+            let imageSize = fixedImage.size
             let imageAspectRatio = imageSize.width / imageSize.height
             
             var naturalDisplayWidth: CGFloat
@@ -581,20 +586,20 @@ struct PhotoCropperView: View {
                 height: cropRadiusInImage * 2
             )
             
-            // Draw only the cropped portion of the image
-            if let cgImage = image.cgImage,
+            // Draw only the cropped portion of the image - using fixedImage
+            if let cgImage = fixedImage.cgImage,
                let croppedCGImage = cgImage.cropping(to: sourceRect) {
                 let croppedUIImage = UIImage(cgImage: croppedCGImage)
                 croppedUIImage.draw(in: CGRect(x: 0, y: 0, width: outputSize.width, height: outputSize.height))
             } else {
-                // Fallback: draw the full image scaled to fit
+                // Fallback: draw the full image scaled to fit - using fixedImage
                 let drawRect = CGRect(
                     x: -cropRelativeX * (outputSize.width / cropSize),
                     y: -cropRelativeY * (outputSize.height / cropSize),
                     width: scaledDisplayWidth * (outputSize.width / cropSize),
                     height: scaledDisplayHeight * (outputSize.height / cropSize)
                 )
-                image.draw(in: drawRect)
+                fixedImage.draw(in: drawRect)
             }
         }
         
@@ -652,3 +657,30 @@ struct ImagePicker: UIViewControllerRepresentable {
 //}
 
 // I love the world and cherish it wholeheartedly
+
+// MARK: - UIImage Extension for Orientation Fix
+extension UIImage {
+    func fixedOrientation() -> UIImage {
+        // If the image is already in the correct orientation, return it
+        if imageOrientation == .up {
+            return self
+        }
+        
+        // Get the image size
+        let size = self.size
+        
+        // Create a graphics context
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
+        defer { UIGraphicsEndImageContext() }
+        
+        // Draw the image in the correct orientation
+        draw(in: CGRect(x: 0, y: 0, width: size.width, height: size.height))
+        
+        // Get the corrected image
+        guard let correctedImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            return self
+        }
+        
+        return correctedImage
+    }
+}

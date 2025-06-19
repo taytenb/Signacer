@@ -4,6 +4,8 @@ struct WelcomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var isShowingQRScanner = false
     @State private var navigateToHome = false
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
     
     var body: some View {
         VStack(spacing: 20) {
@@ -20,21 +22,54 @@ struct WelcomeView: View {
                     .foregroundColor(.black)
                     .cornerRadius(8)
             }
+            
+            // Button(action: {
+            //     // Skip QR scanning and go directly to home
+            //     navigateToHome = true
+            // }) {
+            //     Text("Continue Without Scanning")
+            //         .padding()
+            //         .background(Color.clear)
+            //         .foregroundColor(.neonGreen)
+            //         .overlay(
+            //             RoundedRectangle(cornerRadius: 8)
+            //                 .stroke(Color.neonGreen, lineWidth: 1)
+            //         )
+            // }
         }
         .sheet(isPresented: $isShowingQRScanner) {
             MembershipQRScanView { scannedCode in
-                print("Scanned QR Code: \(scannedCode)")
                 isShowingQRScanner = false
                 
-                // Process the scanned QR code with the authViewModel
-                authViewModel.handleScannedCard(cardId: scannedCode)
-                
-                // Always navigate to home after scanning
-                navigateToHome = true
+                if let cardId = scannedCode {
+                    print("Scanned QR Code: \(cardId)")
+
+                    navigateToHome = true
+                    // // Process the scanned QR code with the authViewModel
+                    // authViewModel.handleScannedCard(cardId: cardId) { success, error in
+                    //     if success {
+                    //         navigateToHome = true
+                    //     } else {
+                    //         alertMessage = error ?? "Failed to process card"
+                    //         showingAlert = true
+                    //     }
+                    // }
+                } else {
+                    // User cancelled or scan failed - just go to home
+                    alertMessage = "Failed to process card"
+                    showingAlert = true
+                }
             }
         }
         .fullScreenCover(isPresented: $navigateToHome) {
             HomeView()
+        }
+        .alert("Card Processing Error", isPresented: $showingAlert) {
+            Button("Try Again") {
+                isShowingQRScanner = false
+            }
+        } message: {
+            Text(alertMessage)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
