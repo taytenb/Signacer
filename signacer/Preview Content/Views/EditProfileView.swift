@@ -150,6 +150,7 @@ struct EditProfileView: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(Color.neonGreen, lineWidth: 1)
                             )
+                            .scrollContentBackground(.hidden)
                     }
                 }
                 .padding(.top, 10)
@@ -185,6 +186,9 @@ struct EditProfileView: View {
         .background(Color.black)
         .edgesIgnoringSafeArea(.all)
         .navigationBarTitleDisplayMode(.inline)
+        .onTapGesture {
+            hideKeyboard()
+        }
         .actionSheet(isPresented: $showingActionSheet) {
             ActionSheet(
                 title: Text("Select Photo"),
@@ -684,3 +688,10 @@ extension UIImage {
         return correctedImage
     }
 }
+
+//// Extension to hide keyboard
+//extension View {
+//    func hideKeyboard() {
+//        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+//    }
+//}

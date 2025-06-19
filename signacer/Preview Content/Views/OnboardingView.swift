@@ -1,6 +1,7 @@
 import SwiftUI
 import Firebase
 import FirebaseFirestore
+import FirebaseStorage
 
 struct OnboardingView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -10,6 +11,12 @@ struct OnboardingView: View {
     @State private var phoneNumber: String = ""
     @State private var username: String = ""
     @State private var bio: String = ""
+    @State private var showingImagePicker = false
+    @State private var showingActionSheet = false
+    @State private var showingPhotoCropper = false
+    @State private var selectedImage: UIImage?
+    @State private var croppedImage: UIImage?
+    @State private var rawSelectedImage: UIImage?
     @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
@@ -28,13 +35,63 @@ struct OnboardingView: View {
                     .foregroundColor(.white)
                     .padding(.top, 20)
                 
-                // Profile picture preview (default)
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 120, height: 120)
+                // Profile picture section
+                VStack(spacing: 15) {
+                    // Show croppedImage first, then user profile pic, then default
+                    Group {
+                        if let croppedImage = croppedImage {
+                            Image(uiImage: croppedImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                .shadow(color: .neonGreen.opacity(0.5), radius: 5)
+                        } else if let user = authViewModel.user, !user.profilePicURL.isEmpty {
+                            AsyncImage(url: URL(string: user.profilePicURL)) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                                    .shadow(color: .neonGreen.opacity(0.5), radius: 5)
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 120, height: 120)
+                                    .foregroundColor(.neonGreen)
+                            }
+                        } else {
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .foregroundColor(.neonGreen)
+                                .overlay(Circle().stroke(Color.neonGreen, lineWidth: 2))
+                        }
+                    }
+                    
+                    Button(action: {
+                        showingActionSheet = true
+                    }) {
+                        HStack {
+                            Image(systemName: "photo")
+                            Text("Add Photo")
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(Color.black)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.neonGreen, lineWidth: 1)
+                        )
+                    }
                     .foregroundColor(.neonGreen)
-                    .padding(.bottom, 20)
+                }
+                .padding(.bottom, 10)
                 
                 TextField("First Name", text: $firstName)
                     .textFieldStyle(CustomTextFieldStyle())
@@ -75,23 +132,24 @@ struct OnboardingView: View {
                     .textFieldStyle(CustomTextFieldStyle())
                     .keyboardType(.phonePad)
                 
-                // Bio text editor
-                VStack(alignment: .leading) {
-                    Text("Bio")
-                        .foregroundColor(.white)
-                        .padding(.leading, 5)
-                    
-                    TextEditor(text: $bio)
-                        .frame(height: 100)
-                        .padding(10)
-                        .background(Color(white: 0.2))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.neonGreen, lineWidth: 1)
-                        )
-                }
+//                // Bio text editor
+//                VStack(alignment: .leading) {
+//                    Text("Bio")
+//                        .foregroundColor(.white)
+//                        .padding(.leading, 5)
+//                    
+//                    TextEditor(text: $bio)
+//                        .frame(height: 100)
+//                        .padding(10)
+//                        .background(Color(white: 0.15))
+//                        .foregroundColor(.white)
+//                        .cornerRadius(8)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 8)
+//                                .stroke(Color.neonGreen, lineWidth: 1)
+//                        )
+//                        .scrollContentBackground(.hidden)
+//                }
                 
                 Button(action: {
                     saveUserData()
@@ -116,8 +174,49 @@ struct OnboardingView: View {
             .background(Color.black)
         }
         .edgesIgnoringSafeArea(.all)
+        .onTapGesture {
+            hideKeyboard()
+        }
+        .actionSheet(isPresented: $showingActionSheet) {
+            ActionSheet(
+                title: Text("Select Photo"),
+                message: Text("Choose a source"),
+                buttons: [
+                    .default(Text("Photo Library")) {
+                        showingImagePicker = true
+                    },
+                    .default(Text("Camera")) {
+                        // TODO: Add camera functionality
+                        showingImagePicker = true
+                    },
+                    .default(Text("Use Default Photo")) {
+                        selectedImage = nil
+                        croppedImage = nil
+                        rawSelectedImage = nil
+                    },
+                    .cancel()
+                ]
+            )
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(selectedImage: $rawSelectedImage)
+        }
+        .sheet(isPresented: $showingPhotoCropper) {
+            if let rawImage = rawSelectedImage {
+                PhotoCropperView(
+                    image: rawImage,
+                    croppedImage: $croppedImage,
+                    isPresented: $showingPhotoCropper
+                )
+            }
+        }
         .alert(isPresented: $showingAlert) {
             Alert(title: Text("Error"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+        .onChange(of: rawSelectedImage) { newImage in
+            if newImage != nil {
+                showingPhotoCropper = true
+            }
         }
     }
     
@@ -130,6 +229,65 @@ struct OnboardingView: View {
         
         isLoading = true
         
+        // Use croppedImage if available, otherwise save without profile image
+        if let imageToUpload = croppedImage {
+            uploadProfileImage(imageToUpload, userId: user.uid) { result in
+                switch result {
+                case .success(let downloadURL):
+                    self.updateUserProfile(user: user, profileImageURL: downloadURL.absoluteString)
+                case .failure(let error):
+                    self.isLoading = false
+                    self.alertMessage = "Failed to upload image: \(error.localizedDescription)"
+                    self.showingAlert = true
+                }
+            }
+        } else {
+            updateUserProfile(user: user, profileImageURL: "")
+        }
+    }
+    
+    private func uploadProfileImage(_ image: UIImage, userId: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        // Compress the image to reduce storage costs
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            completion(.failure(NSError(domain: "app", code: 0, userInfo: [NSLocalizedDescriptionKey: "Could not convert image to data"])))
+            return
+        }
+        
+        // Create a storage reference
+        let storage = Storage.storage()
+        let storageRef = storage.reference()
+        
+        // Create a child reference - organize by user ID
+        let profileImageRef = storageRef.child("profile_images/user_\(userId)/profile.jpg")
+        
+        // Upload the image data
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        
+        let uploadTask = profileImageRef.putData(imageData, metadata: metadata) { metadata, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            // Get the download URL
+            profileImageRef.downloadURL { url, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                
+                guard let downloadURL = url else {
+                    completion(.failure(NSError(domain: "app", code: 0, userInfo: [NSLocalizedDescriptionKey: "Could not get download URL"])))
+                    return
+                }
+                
+                completion(.success(downloadURL))
+            }
+        }
+    }
+    
+    private func updateUserProfile(user: User, profileImageURL: String) {
         // Update the user object with onboarding information
         let updatedUser = User(
             uid: user.uid,
@@ -137,7 +295,7 @@ struct OnboardingView: View {
             username: username,
             firstName: firstName,
             lastName: lastName,
-            profilePicURL: "",
+            profilePicURL: profileImageURL,
             age: age,
             phoneNumber: phoneNumber,
             bio: bio.isEmpty ? "New Signacer user" : bio
@@ -152,7 +310,7 @@ struct OnboardingView: View {
             "age": age,
             "phoneNumber": phoneNumber,
             "bio": bio.isEmpty ? "New Signacer user" : bio,
-            "profilePicURL": ""
+            "profilePicURL": profileImageURL
         ]) { error in
             isLoading = false
             
@@ -167,5 +325,12 @@ struct OnboardingView: View {
                 onboardingComplete?()
             }
         }
+    }
+}
+
+// Extension to hide keyboard
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 } 

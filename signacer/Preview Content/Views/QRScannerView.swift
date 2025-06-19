@@ -297,44 +297,16 @@ class ScannerUIView: UIView, AVCaptureMetadataOutputObjectsDelegate {
         // Trim whitespace
         let trimmedCode = qrCode.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Check basic length requirements
-        guard !trimmedCode.isEmpty && trimmedCode.count >= 3 && trimmedCode.count <= 1000 else {
+        // Basic safety checks: not empty and reasonable length
+        guard !trimmedCode.isEmpty && trimmedCode.count <= 10000 else {
             return false
         }
         
-        // Reject URLs immediately
-        if trimmedCode.lowercased().hasPrefix("http://") || 
-           trimmedCode.lowercased().hasPrefix("https://") ||
-           trimmedCode.lowercased().hasPrefix("www.") ||
-           trimmedCode.contains("://") {
-            return false
-        }
+        // Allow any QR code content - just ensure it's not malicious
+        // Check for null bytes or other potentially dangerous characters
+        let dangerousCharacters = CharacterSet(charactersIn: "\0\u{FFFF}")
         
-        // Check if it's a JSON format (expected format for cards)
-        if trimmedCode.hasPrefix("{") && trimmedCode.hasSuffix("}") {
-            // Try to parse as JSON to validate structure
-            guard let data = trimmedCode.data(using: .utf8) else { return false }
-            
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    // Check for required fields: uuid, athlete_id, user_id
-                    let hasUuid = json["uuid"] is String && !(json["uuid"] as! String).isEmpty
-                    let hasAthleteId = json["athlete_id"] != nil
-                    let hasUserId = json["user_id"] != nil
-                    
-                    return hasUuid && hasAthleteId && hasUserId
-                }
-            } catch {
-                return false
-            }
-        }
-        
-        // For non-JSON formats, check if it looks like a valid card ID
-        // (alphanumeric, hyphens, underscores only)
-        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
-        let characterSet = CharacterSet(charactersIn: trimmedCode)
-        
-        return allowedCharacters.isSuperset(of: characterSet) && trimmedCode.count >= 8
+        return (trimmedCode.rangeOfCharacter(from: dangerousCharacters).map { _ in true } == nil) ?? false
     }
     
     override func layoutSubviews() {
