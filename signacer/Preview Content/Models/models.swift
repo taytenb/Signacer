@@ -10,6 +10,7 @@ struct User {
     var age: Int
     var phoneNumber: String
     var bio: String
+    var howDidYouHearAboutUs: String
     
     // Default initialization with empty values
     static func defaultUser(uid: String, email: String) -> User {
@@ -22,7 +23,8 @@ struct User {
             profilePicURL: "default_profile",
             age: 0,
             phoneNumber: "",
-            bio: ""
+            bio: "",
+            howDidYouHearAboutUs: ""
         )
     }
 }

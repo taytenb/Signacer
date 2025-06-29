@@ -20,12 +20,28 @@ struct OnboardingView: View {
     @State private var isLoading = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var howDidYouHearAboutUs: String = "Select an option"
     
     // Callback for when onboarding is complete
     var onboardingComplete: (() -> Void)?
     
     // Age range for picker
     let ageRange = 13...100
+    
+    // How did you hear about us options
+    let referralSources = [
+        "Select an option",
+        "Social Media (Instagram, TikTok, Twitter)",
+        "Word of Mouth (Friend/Family)",
+        "Google Search",
+        "YouTube",
+        "Podcast",
+        "Sports Event/Game",
+        "Advertisement",
+        "App Store/Google Play",
+        "Athlete/Influencer Recommendation",
+        "Other"
+    ]
     
     var body: some View {
         ScrollView {
@@ -132,24 +148,44 @@ struct OnboardingView: View {
                     .textFieldStyle(CustomTextFieldStyle())
                     .keyboardType(.phonePad)
                 
-//                // Bio text editor
-//                VStack(alignment: .leading) {
-//                    Text("Bio")
-//                        .foregroundColor(.white)
-//                        .padding(.leading, 5)
-//                    
-//                    TextEditor(text: $bio)
-//                        .frame(height: 100)
-//                        .padding(10)
-//                        .background(Color(white: 0.15))
-//                        .foregroundColor(.white)
-//                        .cornerRadius(8)
-//                        .overlay(
-//                            RoundedRectangle(cornerRadius: 8)
-//                                .stroke(Color.neonGreen, lineWidth: 1)
-//                        )
-//                        .scrollContentBackground(.hidden)
-//                }
+                // How did you hear about us picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("How did you hear about us?")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                    
+                    Menu {
+                        ForEach(referralSources, id: \.self) { source in
+                            Button(action: {
+                                howDidYouHearAboutUs = source
+                            }) {
+                                HStack {
+                                    Text(source)
+                                    if howDidYouHearAboutUs == source {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(howDidYouHearAboutUs)
+                                .foregroundColor(howDidYouHearAboutUs == "Select an option" ? .gray : .white)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .foregroundColor(.neonGreen)
+                        }
+                        .padding()
+                        .background(Color(white: 0.15))
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.neonGreen, lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(.horizontal)
                 
                 Button(action: {
                     saveUserData()
@@ -167,7 +203,7 @@ struct OnboardingView: View {
                 .background(Color.neonGreen)
                 .foregroundColor(.black)
                 .cornerRadius(8)
-                .disabled(firstName.isEmpty || lastName.isEmpty || username.isEmpty || phoneNumber.isEmpty || isLoading)
+                .disabled(firstName.isEmpty || lastName.isEmpty || username.isEmpty || phoneNumber.isEmpty || howDidYouHearAboutUs == "Select an option" || isLoading)
                 .padding(.bottom, 30)
             }
             .padding()
@@ -298,7 +334,8 @@ struct OnboardingView: View {
             profilePicURL: profileImageURL,
             age: age,
             phoneNumber: phoneNumber,
-            bio: bio.isEmpty ? "New Signacer user" : bio
+            bio: bio.isEmpty ? "New Signacer user" : bio,
+            howDidYouHearAboutUs: howDidYouHearAboutUs
         )
         
         // Update Firestore with the new user data
@@ -310,7 +347,8 @@ struct OnboardingView: View {
             "age": age,
             "phoneNumber": phoneNumber,
             "bio": bio.isEmpty ? "New Signacer user" : bio,
-            "profilePicURL": profileImageURL
+            "profilePicURL": profileImageURL,
+            "howDidYouHearAboutUs": howDidYouHearAboutUs
         ]) { error in
             isLoading = false
             

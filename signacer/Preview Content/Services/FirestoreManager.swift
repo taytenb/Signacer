@@ -19,10 +19,13 @@ class FirestoreManager {
             "uid": uid,
             "email": user.email,
             "username": user.username,
+            "firstName": user.firstName,
+            "lastName": user.lastName,
             "profilePicURL": user.profilePicURL,
             "age": user.age,
             "phoneNumber": user.phoneNumber,
-            "bio": user.bio
+            "bio": user.bio,
+            "howDidYouHearAboutUs": user.howDidYouHearAboutUs
         ]
         
         db.collection("users").document(uid).setData(userData) { error in
@@ -42,7 +45,8 @@ class FirestoreManager {
                     profilePicURL: data["profilePicURL"] as? String ?? "",
                     age: data["age"] as? Int ?? 0,
                     phoneNumber: data["phoneNumber"] as? String ?? "",
-                    bio: data["bio"] as? String ?? ""
+                    bio: data["bio"] as? String ?? "",
+                    howDidYouHearAboutUs: data["howDidYouHearAboutUs"] as? String ?? ""
                 )
                 completion(user)
             } else {
