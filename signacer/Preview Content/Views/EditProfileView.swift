@@ -325,7 +325,8 @@ struct EditProfileView: View {
             profilePicURL: profileImageURL,
             age: age,
             phoneNumber: phoneNumber,
-            bio: bio.isEmpty ? "New Signacer user" : bio
+            bio: bio.isEmpty ? "New Signacer user" : bio,
+            howDidYouHearAboutUs: user.howDidYouHearAboutUs
         )
         
         // Update Firestore with the new user data

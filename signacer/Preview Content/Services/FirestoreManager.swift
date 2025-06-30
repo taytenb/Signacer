@@ -19,10 +19,13 @@ class FirestoreManager {
             "uid": uid,
             "email": user.email,
             "username": user.username,
+            "firstName": user.firstName,
+            "lastName": user.lastName,
             "profilePicURL": user.profilePicURL,
             "age": user.age,
             "phoneNumber": user.phoneNumber,
-            "bio": user.bio
+            "bio": user.bio,
+            "howDidYouHearAboutUs": user.howDidYouHearAboutUs
         ]
         
         db.collection("users").document(uid).setData(userData) { error in
@@ -42,7 +45,8 @@ class FirestoreManager {
                     profilePicURL: data["profilePicURL"] as? String ?? "",
                     age: data["age"] as? Int ?? 0,
                     phoneNumber: data["phoneNumber"] as? String ?? "",
-                    bio: data["bio"] as? String ?? ""
+                    bio: data["bio"] as? String ?? "",
+                    howDidYouHearAboutUs: data["howDidYouHearAboutUs"] as? String ?? ""
                 )
                 completion(user)
             } else {
@@ -321,6 +325,167 @@ class FirestoreManager {
         
         db.collection("athletes").document(athleteId).collection("polls").document(pollId).collection("votes").document(userId).setData(voteData) { error in
             completion(error == nil)
+        }
+    }
+    
+    // MARK: - Chat Methods
+    
+    func sendMessage(athleteId: String, userId: String, username: String, message: String, completion: @escaping (Bool, String?) -> Void) {
+        // Validate inputs
+        guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            completion(false, "Message cannot be empty")
+            return
+        }
+        
+        guard !athleteId.isEmpty, !userId.isEmpty, !username.isEmpty else {
+            completion(false, "Missing required information")
+            return
+        }
+        
+        let messageData: [String: Any] = [
+            "userId": userId,
+            "username": username,
+            "message": message.trimmingCharacters(in: .whitespacesAndNewlines),
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        let chatRef = db.collection("athletes").document(athleteId).collection("chat")
+        
+        chatRef.addDocument(data: messageData) { error in
+            if let error = error {
+                let errorMsg = self.parseFirestoreError(error)
+                print("Send message failed: \(errorMsg)")
+                completion(false, errorMsg)
+            } else {
+                print("Message sent successfully")
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func fetchMessages(athleteId: String, limit: Int = 50, completion: @escaping ([ChatMessage]) -> Void) {
+        db.collection("athletes").document(athleteId).collection("chat")
+            .order(by: "timestamp", descending: true)
+            .limit(to: limit)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching messages: \(error.localizedDescription)")
+                    completion([])
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                
+                let messages = documents.compactMap { doc -> ChatMessage? in
+                    return self.parseMessageDocument(doc, athleteId: athleteId)
+                }.reversed() // Reverse to show oldest first
+                
+                completion(Array(messages))
+            }
+    }
+    
+    func fetchMoreMessages(athleteId: String, beforeMessage lastMessage: ChatMessage, limit: Int = 50, completion: @escaping ([ChatMessage]) -> Void) {
+        // First get the document reference for the last message
+        let lastMessageRef = db.collection("athletes").document(athleteId).collection("chat").document(lastMessage.id)
+        
+        lastMessageRef.getDocument { lastDoc, error in
+            guard let lastDoc = lastDoc, lastDoc.exists else {
+                completion([])
+                return
+            }
+            
+            self.db.collection("athletes").document(athleteId).collection("chat")
+                .order(by: "timestamp", descending: true)
+                .start(afterDocument: lastDoc)
+                .limit(to: limit)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching more messages: \(error.localizedDescription)")
+                        completion([])
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else {
+                        completion([])
+                        return
+                    }
+                    
+                    let messages = documents.compactMap { doc -> ChatMessage? in
+                        return self.parseMessageDocument(doc, athleteId: athleteId)
+                    }.reversed()
+                    
+                    completion(Array(messages))
+                }
+        }
+    }
+    
+    func listenToMessages(athleteId: String, limit: Int = 50, completion: @escaping ([ChatMessage]) -> Void) -> ListenerRegistration {
+        return db.collection("athletes").document(athleteId).collection("chat")
+            .order(by: "timestamp", descending: true)
+            .limit(to: limit)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error listening to messages: \(self.parseFirestoreError(error))")
+                    completion([])
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                
+                let messages = documents.compactMap { doc -> ChatMessage? in
+                    return self.parseMessageDocument(doc, athleteId: athleteId)
+                }.reversed()
+                
+                completion(Array(messages))
+            }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func parseMessageDocument(_ doc: QueryDocumentSnapshot, athleteId: String) -> ChatMessage? {
+        let data = doc.data()
+        
+        guard let userId = data["userId"] as? String,
+              let username = data["username"] as? String,
+              let message = data["message"] as? String else {
+            return nil
+        }
+        
+        let timestamp: Date
+        if let firestoreTimestamp = data["timestamp"] as? Timestamp {
+            timestamp = firestoreTimestamp.dateValue()
+        } else {
+            timestamp = Date()
+        }
+        
+        return ChatMessage(
+            id: doc.documentID,
+            athleteId: athleteId,
+            userId: userId,
+            username: username,
+            message: message,
+            timestamp: timestamp
+        )
+    }
+    
+    private func parseFirestoreError(_ error: Error) -> String {
+        let nsError = error as NSError
+        
+        switch nsError.code {
+        case 7: // PERMISSION_DENIED
+            return "Permission denied. Please sign in again."
+        case 14: // UNAVAILABLE
+            return "Service temporarily unavailable. Please try again."
+        case 8: // RESOURCE_EXHAUSTED
+            return "Too many requests. Please wait a moment."
+        default:
+            return error.localizedDescription
         }
     }
 }

@@ -32,10 +32,10 @@ struct HomeView: View {
                     .zIndex(100) // Ensure it's above other elements
                     
                     // Signacer Logo
-                    Image("SignacerLogo")
+                    Image("SignacerCropped")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 400, height: 100)
+                        .frame(width: 400, height: 150)
                         .clipped()
                     
                     // Profile Section

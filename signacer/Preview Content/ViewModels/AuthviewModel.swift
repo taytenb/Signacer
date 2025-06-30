@@ -72,7 +72,8 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
                 profilePicURL: newUser.profilePicURL,
                 age: newUser.age,
                 phoneNumber: newUser.phoneNumber,
-                bio: newUser.bio
+                bio: newUser.bio,
+                howDidYouHearAboutUs: newUser.howDidYouHearAboutUs
             )
             
             FirestoreManager.shared.createUser(user: userWithUsername) { success in
@@ -212,7 +213,8 @@ class AuthViewModel: NSObject, ObservableObject, ASAuthorizationControllerDelega
                             profilePicURL: firebaseUser.photoURL?.absoluteString ?? "",
                             age: 0,
                             phoneNumber: firebaseUser.phoneNumber ?? "",
-                            bio: "New Signacer user"
+                            bio: "New Signacer user",
+                            howDidYouHearAboutUs: ""
                         )
                         
                         FirestoreManager.shared.createUser(user: newUser) { success in
