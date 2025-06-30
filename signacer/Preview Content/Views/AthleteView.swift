@@ -32,6 +32,7 @@ struct AthleteView: View {
     @State private var expandedSection: String?
     @State private var selectedPoll: String?
     @State private var showChat = false
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         ZStack {
@@ -187,7 +188,9 @@ struct AthleteView: View {
             }
         }
         .sheet(isPresented: $showChat) {
-            ChatView(athleteName: athlete.name)
+            ChatView(athleteId: athlete.id, 
+            athleteName: athlete.name, 
+            username: authViewModel.user?.username ?? "Anonymous")
         }
     }
 }

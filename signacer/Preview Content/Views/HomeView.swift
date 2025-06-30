@@ -33,10 +33,10 @@ struct HomeView: View {
                     
                     
                     // Signacer Logo
-                    Image("SignacerLogo")
+                    Image("SignacerCropped")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 400, height: 140)
+                        .frame(width: 400, height: 150)
                         .clipped()
                         
                     

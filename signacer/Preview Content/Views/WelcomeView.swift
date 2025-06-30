@@ -8,34 +8,56 @@ struct WelcomeView: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Welcome to Signacer")
-                .font(.largeTitle)
-                .foregroundColor(.white)
+        ZStack {
+            Color.black
+                .edgesIgnoringSafeArea(.all)
             
-            Button(action: {
-                isShowingQRScanner = true
-            }) {
-                Text("Scan Your Membership Card")
-                    .padding()
-                    .background(Color.neonGreen)
-                    .foregroundColor(.black)
-                    .cornerRadius(8)
+            // Logo positioned at the top
+            VStack {
+                Image("SignacerCropped")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 400, height: 150)
+                    .clipped()
+                    .padding(.top, 160) 
+                
+                Spacer()
             }
             
-            // Button(action: {
-            //     // Skip QR scanning and go directly to home
-            //     navigateToHome = true
-            // }) {
-            //     Text("Continue Without Scanning")
-            //         .padding()
-            //         .background(Color.clear)
-            //         .foregroundColor(.neonGreen)
-            //         .overlay(
-            //             RoundedRectangle(cornerRadius: 8)
-            //                 .stroke(Color.neonGreen, lineWidth: 1)
-            //         )
-            // }
+            // Main content centered
+            VStack(spacing: 20) {
+                Spacer()
+                
+                Text("Welcome to Signacer")
+                    .font(.largeTitle)
+                    .foregroundColor(.white)
+                
+                Button(action: {
+                    isShowingQRScanner = true
+                }) {
+                    Text("Scan Your Membership Card")
+                        .padding()
+                        .background(Color.neonGreen)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                }
+                
+                // Button(action: {
+                //     // Skip QR scanning and go directly to home
+                //     navigateToHome = true
+                // }) {
+                //     Text("Continue Without Scanning")
+                //         .padding()
+                //         .background(Color.clear)
+                //         .foregroundColor(.neonGreen)
+                //         .overlay(
+                //             RoundedRectangle(cornerRadius: 8)
+                //                 .stroke(Color.neonGreen, lineWidth: 1)
+                //         )
+                // }
+                
+                Spacer()
+            }
         }
         .sheet(isPresented: $isShowingQRScanner) {
             MembershipQRScanView { scannedCode in
@@ -71,8 +93,5 @@ struct WelcomeView: View {
         } message: {
             Text(alertMessage)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
-        .edgesIgnoringSafeArea(.all)
     }
 }
